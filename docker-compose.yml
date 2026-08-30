@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: vertex-mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vertex_projects}
+      MYSQL_USER: ${MYSQL_USER:-vertex_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vertex_pass}
+      MYSQL_TCP_PORT: 3306
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./src/main/resources/migration:/docker-entrypoint-initdb.d
+    networks:
+      - vertex-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 5
+      interval: 10s
+    restart: unless-stopped
+
+  # VERTEX Backend Application
+  vertex-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vertex-backend-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Server Configuration
+      PORT: 8080
+      
+      # Database Configuration
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-vertex_projects}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${MYSQL_USER:-vertex_user}
+      DB_PASS: ${MYSQL_PASSWORD:-vertex_pass}
+      DB_POOL_MAX: 20
+      DB_POOL_MIN: 5
+      
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-VERTEX-ENTERPRISE-SECRET-KEY-FOR-JWT-TOKEN-OPERATIONS-MIN-512-BITS-64-BYTES-LENGTH-REQUIRED-FOR-HS512-ALGORITHM}
+      JWT_EXP_MS: ${JWT_EXP_MS:-86400000}
+      
+      # CORS Configuration
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000,http://127.0.0.1:5500}
+      
+      # Logging Configuration
+      LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
+      
+      # JVM Options
+      JAVA_OPTS: -Xmx512m -Xms256m -XX:+UseG1GC
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - app_logs:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - vertex-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      timeout: 5s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+volumes:
+  mysql_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  vertex-network:
+    driver: bridge
+

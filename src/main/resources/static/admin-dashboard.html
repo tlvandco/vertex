@@ -1,0 +1,2388 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard — VERTEX</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      safelist: [
+        'translate-x-0', 'translate-x-full', // drawer states
+        'hidden', 'flex'                     // modal visibility
+      ]
+    }
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Profile Dropdown */
+    .profile-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      width: 200px;
+      background: white;
+      border: 1px border-gray-100;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      display: none;
+      z-index: 50;
+      padding: 0.5rem;
+    }
+
+    .profile-dropdown.show {
+      display: block;
+    }
+
+    /* Drawer Base - Widened for Telegram-style */
+    .chat-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 800px;
+      height: 100%;
+      background: white;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1100;
+      /* Higher than main drawer */
+      display: flex;
+    }
+
+    .drawer-open {
+      transform: translateX(0) !important;
+    }
+
+    /* Telegram-style Sidebar */
+    .chat-sidebar {
+      width: 300px;
+      border-right: 1px solid #edf2f7;
+      display: flex;
+      flex-direction: column;
+      background: #fcfcfc;
+    }
+
+    .chat-list-item {
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 1px solid #f7fafc;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chat-list-item:hover {
+      background: #f7fafc;
+    }
+
+    .chat-list-item.active {
+      background: #fff8eb;
+      border-left: 4px solid var(--gold);
+    }
+
+    .chat-list-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .chat-list-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chat-list-name {
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat-list-last {
+      font-size: 0.75rem;
+      color: #718096;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Main Chat Area */
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      position: relative;
+    }
+
+    .chat-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #a0aec0;
+      background: #f8f9fa;
+    }
+
+    /* Slack-like Chat UI */
+    .chat-bubble {
+      padding: 0.6rem 0.9rem;
+      border-radius: 12px;
+      max-width: 80%;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-bubble-mine {
+      background: var(--gold);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+      margin-left: auto;
+    }
+
+    .chat-bubble-theirs {
+      background: #f8f9fa;
+      color: #2d3748;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+      border: 1px solid #edf2f7;
+    }
+
+    .chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: #4a5568;
+      flex-shrink: 0;
+    }
+
+    .chat-msg-group {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+
+    .chat-msg-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-sender-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chat-timestamp {
+      font-size: 0.65rem;
+      font-weight: 400;
+      color: #a0aec0;
+    }
+
+    .chat-input-area {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 4px;
+      background: white;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input-area:focus-within {
+      border-color: var(--gold);
+    }
+
+    .unread-badge {
+      background: #ff3b30;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .reply-snippet {
+      background: rgba(0, 0, 0, 0.05);
+      border-left: 3px solid var(--gold);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-size: 0.75rem;
+      color: #718096;
+      max-width: 100%;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .message-action-btn {
+      opacity: 0;
+      transition: opacity 0.2s;
+      color: #a0aec0;
+      cursor: pointer;
+    }
+
+    .chat-bubble:hover .message-action-btn {
+      opacity: 1;
+    }
+
+    .message-action-btn:hover {
+      color: var(--gold);
+    }
+
+    .deleted-text {
+      font-style: italic;
+      color: #a0aec0;
+    }
+
+    /* Mention Popup */
+    .mention-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .mention-item:last-child {
+      border-bottom: none;
+    }
+
+    .mention-item:hover {
+      background: #f3f4f6;
+    }
+
+    .mention-item .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .mention-highlight {
+      color: var(--gold);
+      font-weight: bold;
+    }
+  </style>
+  <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+</head>
+
+<body class="bg-[var(--muted)] min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white/80 backdrop-blur-md drop-shadow-sm sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="brand text-2xl font-semibold">VERTEX</div>
+        <div class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full font-medium uppercase tracking-wider">
+          Admin</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleChat()" class="p-2 text-gray-500 hover:text-[var(--gold)] transition-colors relative"
+          title="Open Project Chat">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+          </svg>
+        </button>
+        <button onclick="openCreateModal()" class="px-4 py-2 rounded-lg btn-gold text-sm font-medium" type="button">New
+          Project</button>
+        <!-- Profile Dropdown -->
+        <div class="relative">
+          <button onclick="toggleProfileMenu()"
+            class="w-10 h-10 rounded-full bg-[var(--gold)] text-white flex items-center justify-center font-bold shadow-sm hover:opacity-90 transition-all border-2 border-white ring-1 ring-gray-100">
+            <span id="navInitials">AD</span>
+          </button>
+          <div id="profileMenu" class="profile-dropdown text-left">
+            <div class="px-4 py-3 border-b mb-1">
+              <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Account</p>
+              <p id="navUserName" class="text-sm font-bold text-gray-800 truncate">Admin Name</p>
+            </div>
+            <button onclick="APP.auth.logout()"
+              class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-1">🚪 Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CHAT DRAWER (TEMPORARY REMOVAL FROM HERE) -->
+
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+
+    <!-- STATS + RECENT -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="col-span-2 card p-6">
+        <h3 class="text-lg font-semibold mb-4">Dashboard Overview</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+            <div class="text-sm text-gray-500">Total Projects</div>
+            <div id="statTotal" class="text-3xl font-bold text-[var(--gold)]">0</div>
+          </div>
+          <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+            <div class="text-sm text-gray-500">Planning</div>
+            <div id="statPlanning" class="text-3xl font-bold text-gray-700">0</div>
+          </div>
+          <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+            <div class="text-sm text-gray-500">In Progress</div>
+            <div id="statInProgress" class="text-3xl font-bold text-gray-700">0</div>
+          </div>
+          <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+            <div class="text-sm text-gray-500">Completed</div>
+            <div id="statCompleted" class="text-3xl font-bold text-gray-700">0</div>
+          </div>
+        </div>
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div class="p-4 bg-white/50 rounded-xl border border-white/50">
+            <h4 class="font-medium mb-3">Recent Projects</h4>
+            <ul id="recentList" class="space-y-3 text-sm text-gray-700"></ul>
+          </div>
+          <div class="p-4 bg-white/50 rounded-xl border border-white/50">
+            <h4 class="font-medium mb-3 flex items-center justify-between">
+              Milestones This Month
+              <button onclick="if(activeProjectId){ openDrawer(activeProjectId, ''); setTimeout(()=>switchTab('milestones'), 100); } else { APP.toast.info('Click Manage on a project first'); }" class="text-xs bg-[var(--gold)] text-white px-2 py-1 rounded hover:opacity-90 transition-opacity">Manage</button>
+            </h4>
+            <canvas id="milestoneChart" height="180"></canvas>
+            <div id="milestoneHighlight" class="mt-4 p-4 bg-white rounded-lg border border-[var(--gold)]/20 hidden">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🏆</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-[var(--gold)]">Milestone of the
+                  Month</span>
+              </div>
+              <div id="highName" class="font-bold text-gray-800"></div>
+              <div id="highProject" class="text-[10px] text-gray-500 mb-2"></div>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div id="highProgress" class="h-full bg-[var(--gold)]" style="width:0%"></div>
+                </div>
+                <span id="highProgressVal" class="text-[10px] font-bold">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="card p-6 h-fit sticky top-24">
+        <h4 class="font-medium mb-4 text-lg">Quick Actions</h4>
+        <div class="flex flex-col gap-3">
+          <button onclick="openClientsModal()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 transition-colors flex items-center justify-between group">
+            <span>Manage Clients</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">→</span>
+          </button>
+          <button onclick="openTeamListModal()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 transition-colors flex items-center justify-between group">
+            <span>Manage Team</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">→</span>
+          </button>
+          <button onclick="openCreateMemberModal()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 transition-colors flex items-center justify-between group">
+            <span>New Team Member</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">→</span>
+          </button>
+          <button onclick="refresh()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 transition-colors flex items-center justify-between group">
+            <span>Refresh Data</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">↻</span>
+          </button>
+          <button onclick="openPortfolioModal()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 transition-colors flex items-center justify-between group">
+            <span>Manage Portfolio</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">→</span>
+          </button>
+          <button onclick="toggleChat()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-between group mb-2">
+            <span>Open Project Chat</span>
+            <span class="text-gray-400 group-hover:text-[var(--gold)]">💬</span>
+          </button>
+          <button onclick="openAnalytics()"
+            class="w-full text-left px-4 py-3 rounded-lg bg-[var(--dark)] text-white hover:opacity-90 transition-colors flex items-center justify-between group">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-[var(--gold)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10m4 0h10m-10 0a2 2 0 002 2h2a2 2 0 002-2M9 14a2 2 0 012-2h2a2 2 0 012 2v5a2 2 0 01-2 2h-2a2 2 0 01-2-2v-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+              Command Center
+            </span>
+            <span class="text-[var(--gold)] animate-pulse">●</span>
+          </button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- PROJECT TABLE -->
+    <section id="projectSection" class="card p-6">
+      <div class="flex flex-wrap items-center justify-between mb-6 gap-4">
+        <h3 class="font-semibold text-lg">All Projects</h3>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <input id="searchInput" placeholder="Search projects..."
+            class="flex-1 md:w-64 px-4 py-2 border rounded-lg text-sm bg-white/50 focus:bg-white" />
+          <button onclick="search()" class="px-4 py-2 rounded-lg btn-secondary text-sm" type="button">Search</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto rounded-lg border">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-600 font-medium border-b">
+            <tr>
+              <th class="px-6 py-3">Name</th>
+              <th class="px-6 py-3">Client</th>
+              <th class="px-6 py-3">Status</th>
+              <th class="px-6 py-3">Progress</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projectsTbody" class="divide-y bg-white"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ANALYTICS & LOGGING SECTION (HIDDEN BY DEFAULT) -->
+    <section id="analyticsSection" class="hidden space-y-8 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold brand">Operational Command Center</h2>
+        <button onclick="closeAnalytics()" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-100">Back to Projects</button>
+      </div>
+
+      <!-- ANALYTICS GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Activity Chart -->
+        <div class="lg:col-span-2 card p-6">
+          <h4 class="font-bold text-sm mb-4 uppercase tracking-widest text-gray-400">System Activity Trend</h4>
+          <canvas id="activityChart" height="200"></canvas>
+        </div>
+        <!-- Category Breakdown -->
+        <div class="card p-6">
+          <h4 class="font-bold text-sm mb-4 uppercase tracking-widest text-gray-400">Action Distribution</h4>
+          <canvas id="categoryChart" height="250"></canvas>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD & RECENT -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-6">
+           <h4 class="font-bold text-sm mb-4 uppercase tracking-widest text-gray-400">User Activity Leaderboard</h4>
+           <div id="topUsersList" class="space-y-4">
+             <!-- Top users here -->
+           </div>
+        </div>
+        <div class="card p-6 border-l-4 border-[var(--gold)]">
+           <h4 class="font-bold text-sm mb-4 uppercase tracking-widest text-gray-400">Quick Operations</h4>
+           <div class="grid grid-cols-2 gap-4">
+             <button onclick="APP.toast.info('Exporting...')" class="p-4 bg-gray-50 rounded-xl border hover:bg-white transition-all text-sm font-bold">📂 Download CSV Report</button>
+             <button onclick="APP.toast.info('History cleared')" class="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 hover:bg-red-100 transition-all text-sm font-bold">🗑 Clear History</button>
+           </div>
+           <p class="text-[10px] text-gray-400 mt-4 italic">Note: Aggregated data is refreshed every 5 minutes automatically.</p>
+        </div>
+      </div>
+
+      <!-- MASTER AUDIT EXPLORER -->
+      <div class="card p-6 overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <h4 class="font-bold text-sm uppercase tracking-widest text-gray-400">Audit Log Explorer</h4>
+          <div class="flex items-center gap-2">
+            <button onclick="loadAuditLogs(0)" class="text-[10px] bg-white border px-3 py-1.5 rounded-lg hover:bg-gray-100 font-bold uppercase tracking-widest text-gray-500 transition-all">
+              <i class="fas fa-sync-alt mr-2"></i> Refresh Data
+            </button>
+            <button onclick="clearAuditFilters()" class="text-[10px] bg-white border px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 font-bold uppercase tracking-widest text-gray-400 transition-all">
+              <i class="fas fa-eraser mr-2"></i> Clear Filters
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="min-w-full text-[11px] leading-tight">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="px-4 py-3 text-left">Time</th>
+                <th class="px-4 py-3 text-left">User</th>
+                <th class="px-4 py-3 text-left">Action</th>
+                <th class="px-4 py-3 text-left">Category</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">IP</th>
+                <th class="px-4 py-3 text-center">Diagnostics</th>
+              </tr>
+              <!-- Column Filters -->
+              <tr class="bg-white border-b">
+                <th class="px-2 py-1"></th>
+                <th class="px-2 py-1">
+                  <input type="text" id="filterUser" oninput="APP.util.debounce(() => loadAuditLogs(0), 400)()" placeholder="Filter..." class="w-full text-[9px] border rounded p-1 outline-none focus:ring-1 focus:ring-[var(--gold)]">
+                </th>
+                <th class="px-2 py-1">
+                  <input type="text" id="filterAction" oninput="APP.util.debounce(() => loadAuditLogs(0), 400)()" placeholder="Filter..." class="w-full text-[9px] border rounded p-1 outline-none focus:ring-1 focus:ring-[var(--gold)]">
+                </th>
+                <th class="px-2 py-1">
+                  <input type="text" id="filterCategory" oninput="APP.util.debounce(() => loadAuditLogs(0), 400)()" placeholder="Filter..." class="w-full text-[9px] border rounded p-1 outline-none focus:ring-1 focus:ring-[var(--gold)]">
+                </th>
+                <th class="px-2 py-1">
+                  <select id="filterStatus" onchange="loadAuditLogs(0)" class="w-full text-[9px] border rounded p-1 outline-none">
+                    <option value="">Any</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILURE">Failure</option>
+                    <option value="ERROR">Error</option>
+                  </select>
+                </th>
+                <th class="px-2 py-1">
+                  <input type="text" id="filterIP" oninput="APP.util.debounce(() => loadAuditLogs(0), 400)()" placeholder="Filter..." class="w-full text-[9px] border rounded p-1 outline-none focus:ring-1 focus:ring-[var(--gold)]">
+                </th>
+                <th class="px-2 py-1"></th>
+              </tr>
+            </thead>
+            <tbody id="auditTbody" class="divide-y bg-white"></tbody>
+          </table>
+        </div>
+        <div id="auditPagination" class="mt-4 flex justify-end gap-2"></div>
+      </div>
+
+      <!-- SYSTEM CONSOLE -->
+      <div class="card bg-[#1a1a1a] p-6 border-0 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+            <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+            <h4 class="ml-4 font-mono text-sm text-green-500 font-bold">system.log</h4>
+          </div>
+          <div class="flex items-center gap-2">
+             <div class="flex bg-gray-800 rounded-lg p-1 mr-2 text-[9px] font-bold border border-gray-700">
+               <button onclick="setLogLevelFilter('')" class="log-level-btn px-2 py-0.5 rounded transition-all active-level" data-level="">ALL</button>
+               <button onclick="setLogLevelFilter('ERROR')" class="log-level-btn px-2 py-0.5 rounded transition-all hover:text-red-500" data-level="ERROR">ERROR</button>
+               <button onclick="setLogLevelFilter('WARN')" class="log-level-btn px-2 py-0.5 rounded transition-all hover:text-yellow-500" data-level="WARN">WARN</button>
+               <button onclick="setLogLevelFilter('INFO')" class="log-level-btn px-2 py-0.5 rounded transition-all hover:text-blue-400" data-level="INFO">INFO</button>
+             </div>
+             <input type="text" id="consoleFilterInput" oninput="loadLiveLogs()" placeholder="Search stream..." 
+                    class="bg-gray-800 border border-gray-700 text-gray-300 text-[10px] px-3 py-1 rounded-lg outline-none focus:border-green-500 min-w-[150px]">
+             <button onclick="loadLiveLogs()" class="text-[10px] font-mono text-gray-500 hover:text-white transition-colors">↻</button>
+          </div>
+        </div>
+        <div id="logConsole" class="font-mono text-[10px] text-gray-300 h-64 min-h-[160px] overflow-y-auto whitespace-pre-wrap leading-relaxed custom-scrollbar resize-y border border-gray-800 rounded bg-black/50 p-4">
+          [System] Initializing console stream...
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- CREATE PROJECT MODAL -->
+  <div id="createModal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-2xl p-8 shadow-2xl relative my-8">
+      <div class="flex justify-between items-center mb-6">
+        <h3 id="projectModalTitle" class="text-xl font-semibold brand">New Project</h3>
+        <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <input id="projName" class="p-3 rounded-lg" placeholder="Project name" />
+          <div class="relative flex items-center">
+            <input id="projLocation" class="w-full p-3 rounded-lg pr-10" placeholder="Location" />
+            <button onclick="APP.geo.pick('projLocation')" type="button"
+              class="absolute right-2 p-1.5 text-gray-400 hover:text-[var(--gold)] transition-colors"
+              title="Use current location">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+          <input id="projBudget" class="p-3 rounded-lg" placeholder="Budget" />
+          <select id="projStatus" class="p-3 rounded-lg bg-white">
+            <option value="PLANNING">Planning</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="ON_HOLD">On Hold</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
+
+        <textarea id="projDesc" rows="3" class="p-3 rounded-lg" placeholder="Description"></textarea>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700">Assign Client</label>
+          <select id="clientSelect" class="w-full p-3 rounded-lg bg-white border">
+            <option value="">-- Select Client --</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700">Project Progress: <span id="projProgressValue"
+              class="font-bold text-[var(--gold)] ml-2">0%</span></label>
+          <input id="projProgress" type="range" min="0" max="100" step="1"
+            class="w-full accent-[var(--gold)] h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            oninput="updateProgressDisplay(this.value)">
+        </div>
+
+        <div class="flex justify-end gap-3 mt-4 pt-4 border-t">
+          <button onclick="closeCreateModal()" class="px-5 py-2.5 rounded-lg btn-secondary"
+            type="button">Cancel</button>
+          <button id="deleteProjectBtn"
+            class="hidden px-5 py-2.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50"
+            type="button">Delete</button>
+          <button id="saveProjectBtn" class="px-5 py-2.5 btn-gold rounded-lg shadow-lg" type="button">Save
+            Project</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE TEAM MEMBER MODAL -->
+  <div id="createMemberModal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-8 shadow-2xl relative">
+      <div class="flex justify-between items-center mb-6">
+        <h3 id="teamMemberModalTitle" class="text-xl font-semibold brand">New Team Member</h3>
+        <button onclick="closeCreateMemberModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <input id="tmName" class="p-3 rounded-lg" placeholder="Full name" />
+          <input id="tmEmail" class="p-3 rounded-lg" placeholder="Email" type="email" />
+        </div>
+        <input id="tmPassword" type="password" class="p-3 rounded-lg"
+          placeholder="Initial password (required for new)" />
+        <div class="grid grid-cols-2 gap-4">
+          <input id="tmPhone" class="p-3 rounded-lg" placeholder="Phone" />
+          <select id="tmRole" class="p-3 rounded-lg bg-white border">
+            <option value="PROJECT_MANAGER">Project Manager</option>
+            <option value="ARCHITECT">Architect</option>
+            <option value="DESIGNER">Designer</option>
+            <option value="SITE_ENGINEER">Site Engineer</option>
+            <option value="FINANCE">Finance</option>
+          </select>
+        </div>
+        <input id="tmSpec" class="p-3 rounded-lg" placeholder="Specialization (e.g. Lighting, FF&E)" />
+
+        <div class="flex justify-end gap-3 mt-4">
+          <button onclick="closeCreateMemberModal()" class="px-5 py-2.5 rounded-lg btn-secondary"
+            type="button">Cancel</button>
+          <button id="memberSubmitBtn" onclick="createTeamMember()" class="px-5 py-2.5 btn-gold rounded-lg shadow-lg"
+            type="button">Create Member</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS LIST MODAL -->
+  <div id="clientsModal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-5xl p-8 shadow-2xl relative my-8">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold brand">Clients Management</h3>
+        <button onclick="closeClientsModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-600">
+            <tr>
+              <th class="px-6 py-3">Client</th>
+              <th class="px-6 py-3">Email</th>
+              <th class="px-6 py-3">Project</th>
+              <th class="px-6 py-3">Status</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTbody" class="divide-y bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM MEMBERS LIST MODAL -->
+  <div id="teamListModal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-5xl p-8 shadow-2xl relative my-8">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold brand">Team Directory</h3>
+        <button onclick="closeTeamListModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-600">
+            <tr>
+              <th class="px-6 py-3">Name</th>
+              <th class="px-6 py-3">Role</th>
+              <th class="px-6 py-3">Email</th>
+              <th class="px-6 py-3">Phone</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="teamTbody" class="divide-y bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMOTE MODAL -->
+  <div id="promoteModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-[2000] p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+      <h3 class="font-bold text-xl mb-4 text-[var(--dark)]">Promote to Portfolio</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Title</label>
+          <input type="text" id="promoteTitle" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[var(--gold)] outline-none" value="Project Highlight">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Description</label>
+          <textarea id="promoteDesc" rows="2" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[var(--gold)] outline-none" placeholder="Brief description..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Collection Name</label>
+          <input type="text" id="promoteCollection" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-[var(--gold)] outline-none" placeholder="e.g. Master Bedrooms">
+          <p class="text-xs text-gray-500 mt-1">Leave blank to assign to "General" collection.</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closePromoteModal()" class="px-4 py-2 text-sm rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
+        <button id="submitPromoteBtn" class="px-4 py-2 text-sm rounded-lg text-white bg-[var(--gold)] hover:bg-[#aa8800] transition-colors shadow-md">Promote Image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO LIST MODAL -->
+  <div id="portfolioModal"
+    class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-5xl p-8 shadow-2xl relative my-8">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-semibold brand">Portfolio Management</h3>
+        <button onclick="closePortfolioModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+      <div class="flex gap-4 mb-4">
+        <input type="text" id="filterPortfolioCollection" placeholder="Filter by Collection..." class="border rounded-lg p-2 text-sm w-1/3 focus:ring-2 focus:ring-[var(--gold)] outline-none" oninput="filterPortfolioAdmin()">
+        <input type="text" id="filterPortfolioTitle" placeholder="Filter by Title..." class="border rounded-lg p-2 text-sm w-1/3 focus:ring-2 focus:ring-[var(--gold)] outline-none" oninput="filterPortfolioAdmin()">
+      </div>
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-600">
+            <tr>
+              <th class="px-6 py-3">Image</th>
+              <th class="px-6 py-3">Collection</th>
+              <th class="px-6 py-3">Title</th>
+              <th class="px-6 py-3">Description</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioTbody" class="divide-y bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER -->
+  <div id="drawer" class="drawer-base p-0 flex flex-col shadow-2xl">
+    <div class="p-6 border-b bg-gray-50 flex items-center justify-between">
+      <div>
+        <h3 id="drawerTitle" class="text-xl font-semibold brand">Project</h3>
+        <div id="drawerSub" class="text-sm text-gray-500 mt-1"></div>
+      </div>
+      <button onclick="closeDrawer()" class="px-3 py-1 bg-white border rounded text-sm hover:bg-gray-100">Close</button>
+    </div>
+
+    <div class="p-6 overflow-y-auto flex-1 space-y-8">
+      <!-- Team Section -->
+      <div>
+        <h4 class="font-medium text-lg mb-4 flex items-center gap-2">
+          <span class="w-1 h-6 bg-[var(--gold)] rounded-full block"></span> Team Allocation
+        </h4>
+        <div class="flex gap-2 mb-4">
+          <select id="memberSelect" class="flex-1 p-2 border rounded-lg bg-white"></select>
+          <select id="roleSelect" class="w-40 p-2 border rounded-lg bg-white">
+            <option value="PROJECT_MANAGER">Manager</option>
+            <option value="ARCHITECT">Architect</option>
+            <option value="DESIGNER">Designer</option>
+            <option value="SITE_ENGINEER">Engineer</option>
+            <option value="FINANCE">Finance</option>
+          </select>
+          <button onclick="assignMember()" class="px-4 py-2 btn-gold rounded-lg text-sm">Add</button>
+        </div>
+        <div id="teamList" class="space-y-2"></div>
+      </div>
+
+      <!-- Milestones Section -->
+      <div>
+        <h4 class="font-medium text-lg mb-4 flex items-center gap-2">
+          <span class="w-1 h-6 bg-[var(--gold)] rounded-full block"></span> Milestones
+        </h4>
+        <div id="milestoneList" class="space-y-3 mb-4"></div>
+
+        <button onclick="showMilestoneForm()" class="text-sm text-[var(--gold-hover)] font-medium hover:underline">+ Add
+          Milestone</button>
+
+        <div id="milestoneForm" class="hidden mt-4 p-4 border rounded-xl bg-gray-50">
+          <h5 class="font-medium mb-3">New Milestone</h5>
+          <div class="space-y-3">
+            <input id="msName" class="w-full p-2 border rounded-lg bg-white" placeholder="Milestone Name" />
+            <div class="grid grid-cols-2 gap-2">
+              <input id="msDue" type="date" class="w-full p-2 border rounded-lg bg-white" />
+              <select id="msTargetTask" class="w-full p-2 border rounded-lg bg-white text-xs">
+                <option value="">Link to Task (Recommended)</option>
+              </select>
+            </div>
+            <textarea id="msDesc" class="w-full p-2 border rounded-lg bg-white" rows="2"
+              placeholder="Description"></textarea>
+            <div class="flex justify-end gap-2">
+              <button onclick="hideMilestoneForm()" class="px-3 py-1.5 text-sm border rounded bg-white">Cancel</button>
+              <button onclick="createMilestone()" class="px-3 py-1.5 text-sm btn-gold rounded">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Section -->
+      <div>
+        <h4 class="font-medium text-lg mb-4 flex items-center gap-2">
+          <span class="w-1 h-6 bg-[var(--gold)] rounded-full block"></span> Tasks
+        </h4>
+        <div id="taskList" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+  <!-- /#drawer closes here — scripts and chatDrawer must be OUTSIDE the drawer
+       because CSS transform on a parent makes position:fixed children relative
+       to that parent instead of the viewport. -->
+
+  <!-- APP LOGIC -->
+  <script src="js/app.js"></script>
+  <script>
+    // --- AUTH GUARD ---
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!APP.auth.isAuthenticated()) window.location.href = 'login.html';
+      if (APP.auth.getRole() !== 'ADMIN') window.location.href = 'user-dashboard.html';
+
+      // Init Profile UI
+      document.getElementById('navInitials').textContent = APP.auth.getInitials();
+      document.getElementById('navUserName').textContent = APP.auth.getName();
+
+      // Outside click to close profile menu
+      window.addEventListener('click', (e) => {
+        if (!e.target.closest('.relative')) {
+          document.getElementById('profileMenu')?.classList.remove('show');
+        }
+      });
+
+      initAdminDashboard();
+    });
+
+    function toggleProfileMenu() {
+      document.getElementById('profileMenu').classList.toggle('show');
+    }
+
+    // --- STATE ---
+    let editingProjectId = null;
+    let editMemberId = null;
+    let channelMembers = [];
+
+    async function initAdminDashboard() {
+      await refresh();
+      // Load Clients dropdown once for modals
+      loadClientsDropdown();
+    }
+
+    async function refresh() {
+      await Promise.all([
+        loadProjects(),
+        loadTeamDirectory(),
+        loadStats(),
+        loadGlobalMilestoneHighlight()
+      ]);
+      APP.toast.success("Dashboard updated");
+    }
+
+    // --- STATS ---
+    async function loadStats() {
+      try {
+        const stats = await APP.api.get('/projects/stats');
+        document.getElementById('statTotal').textContent = stats.total || 0;
+        document.getElementById('statPlanning').textContent = stats.planning || 0;
+        document.getElementById('statInProgress').textContent = stats.inProgress || 0;
+        document.getElementById('statCompleted').textContent = stats.completed || 0;
+
+        const recent = await APP.api.get('/projects/recent');
+        document.getElementById('recentList').innerHTML = (recent || []).slice(0, 5).map(p => `
+                <li class="py-2 border-b last:border-0 flex justify-between items-center">
+                    <div>
+                        <div class="font-medium">${APP.util.escapeHtml(p.name)}</div>
+                        <div class="text-xs text-gray-500">${APP.util.escapeHtml(p.location || 'No location')}</div>
+                    </div>
+                    <span class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">${p.status}</span>
+                </li>
+            `).join('');
+
+        renderChart(allProjects);
+      } catch (e) {
+        console.error("Stats/Recent load failed", e);
+      }
+    }
+
+    async function loadGlobalMilestoneHighlight() {
+      try {
+        // Find a project with milestones to highlight (demo logic: pick first active)
+        if (allProjects.length > 0) {
+          const p = allProjects[0];
+          const high = await APP.api.get(`/milestones/project/${p.id}/highlight`);
+          if (high) {
+            const div = document.getElementById('milestoneHighlight');
+            div.classList.remove('hidden');
+            document.getElementById('highName').textContent = high.name;
+            document.getElementById('highProject').textContent = p.name;
+            document.getElementById('highProgress').style.width = `${high.progress}%`;
+            document.getElementById('highProgressVal').textContent = `${high.progress}%`;
+          }
+        }
+      } catch (e) { /* ignore highlight errors */ }
+    }
+
+    // --- CHAT LOGIC ---
+    let chatOpen = false;
+    let chatPolling = null;
+    let currentChatProjectId = null;
+    let myChannels = [];
+    let pendingReplyTo = null;
+
+    async function toggleChat(forceChannelId = null) {
+      const d = document.getElementById('chatDrawer');
+      d.classList.toggle('drawer-open');
+      chatOpen = d.classList.contains('drawer-open');
+
+      if (chatOpen) {
+        try {
+          myChannels = await APP.api.get('/chat/channels');
+          loadChatChannelList();
+        } catch (e) { console.error("Could not load channels", e); }
+
+        const idToOpen = forceChannelId || currentChatProjectId || (activeProjectId ? "P_" + activeProjectId : null);
+        if (idToOpen) {
+          selectChatChannel(idToOpen);
+        }
+      } else {
+        stopChatPolling();
+      }
+    }
+
+    function loadChatChannelList() {
+      const container = document.getElementById('chatProjectList');
+      if (!myChannels.length) {
+        container.innerHTML = '<div class="p-8 text-center text-gray-400 text-xs italic">No channels found.</div>';
+        return;
+      }
+
+      container.innerHTML = myChannels.map(c => {
+        const initials = c.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const isActive = c.id === currentChatProjectId;
+        const unreadBadge = (c.unreadCount > 0) ? `<span class="unread-badge transition-all animate-pulse">${c.unreadCount}</span>` : '';
+        const previewText = c.lastMessagePreview || 'No messages yet';
+
+        return `
+          <div class="chat-list-item ${isActive ? 'active' : ''}" onclick="selectChatChannel('${c.id}')" id="chatItem-${c.id}">
+            <div class="chat-list-avatar">${initials}</div>
+            <div class="chat-list-info">
+              <div class="flex justify-between items-center mb-0.5">
+                <div class="chat-list-name truncate font-bold text-[#1A1A1A]">${APP.util.escapeHtml(c.name)}</div>
+                ${unreadBadge}
+              </div>
+              <div class="chat-list-last truncate text-xs text-gray-500">${APP.util.escapeHtml(previewText)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterChatList() {
+      const q = document.getElementById('chatSearch').value.toLowerCase();
+      const items = document.querySelectorAll('.chat-list-item');
+      items.forEach(item => {
+        const name = item.querySelector('.chat-list-name').textContent.toLowerCase();
+        item.style.display = name.includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    function selectChatChannel(id) {
+      currentChatProjectId = id;
+
+      document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+      const activeItem = document.getElementById(`chatItem-${id}`);
+      if (activeItem) activeItem.classList.add('active');
+
+      const c = myChannels.find(cx => cx.id === id);
+      if (c) {
+        channelMembers = c.members || [];
+        document.getElementById('chatTitle').textContent = c.name;
+        document.getElementById('chatSub').textContent = c.subtext || 'General Channel';
+
+        const avatar = document.getElementById('activeChatAvatar');
+        avatar.textContent = c.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        avatar.classList.remove('hidden');
+        document.getElementById('chatStatusInfo').classList.remove('hidden');
+        document.getElementById('chatInputSection').classList.remove('hidden');
+        markChannelRead(id);
+      }
+
+      loadChatMessages(id);
+      startChatPolling();
+    }
+
+    function startChatPolling() {
+      stopChatPolling();
+      chatPolling = setInterval(async () => {
+        if (!chatOpen) return;
+
+        try {
+          const oldChannels = JSON.stringify(myChannels.map(c => ({ id: c.id, count: c.unreadCount })));
+          myChannels = await APP.api.get('/chat/channels');
+          const newChannels = JSON.stringify(myChannels.map(c => ({ id: c.id, count: c.unreadCount })));
+
+          if (oldChannels !== newChannels) {
+            loadChatChannelList();
+            // Sound logic: Play if total unread increased and it's NOT the current focused channel
+            const totalOld = JSON.parse(oldChannels).reduce((s, c) => s + c.count, 0);
+            const totalNew = myChannels.reduce((s, c) => s + c.unreadCount, 0);
+
+            // Find if there's a new message in a DIFFERENT channel
+            const hasNewOutside = myChannels.some(c => {
+              const old = JSON.parse(oldChannels).find(oc => oc.id === c.id);
+              return c.unreadCount > (old ? old.count : 0) && c.id !== currentChatProjectId;
+            });
+
+            if (totalNew > totalOld && hasNewOutside) {
+              document.getElementById('notifSound').play().catch(e => console.warn("Audio play blocked", e));
+            }
+          }
+
+          if (currentChatProjectId) {
+            loadChatMessages(currentChatProjectId);
+            markChannelRead(currentChatProjectId);
+          }
+        } catch (e) { }
+      }, 5000);
+    }
+
+    async function markChannelRead(id) {
+      try { await APP.api.post(`/chat/channel/${id}/read`); } catch (e) { }
+    }
+
+    function stopChatPolling() {
+      if (chatPolling) clearInterval(chatPolling);
+      chatPolling = null;
+    }
+
+    async function loadChatMessages(channelId) {
+      if (!channelId) return;
+      try {
+        const history = await APP.api.get(`/chat/channel/${channelId}`);
+        const container = document.getElementById('chatMessages');
+        const myEmail = APP.auth.getEmail();
+        let html = '';
+        let lastSender = null;
+
+        if (history.length === 0) {
+          html = `
+            <div class="chat-empty-state">
+              <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                 <span class="text-3xl">👋</span>
+              </div>
+              <p class="text-sm font-medium">Start the conversation!</p>
+              <p class="text-xs mt-1 text-center px-8">This is the beginning of the chat for ${document.getElementById('chatTitle').textContent}.</p>
+            </div>
+          `;
+        } else {
+          history.forEach(m => {
+            const isMine = m.senderEmail === myEmail;
+            const initials = (m.senderName || '??').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+            const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const showHeader = m.senderEmail !== lastSender;
+            lastSender = m.senderEmail;
+
+            const isDeleted = m.deleted;
+
+            html += `
+                <div id="msg-${m.id}" class="chat-msg-group w-full flex ${showHeader ? 'mt-4' : 'mt-1'} ${isMine ? 'justify-end' : 'justify-start'}">
+                  <div class="flex max-w-[85%] ${isMine ? 'flex-row-reverse' : 'flex-row'} gap-2">
+                    <div class="chat-avatar ${showHeader ? '' : 'invisible'} flex-shrink-0" title="${APP.util.escapeHtml(m.senderName)}">${initials}</div>
+                    <div class="chat-msg-content ${isMine ? 'items-end' : 'items-start'}">
+                      ${showHeader ? `
+                        <div class="chat-sender-name ${isMine ? 'justify-end' : ''}">
+                          ${APP.util.escapeHtml(isMine ? 'You' : m.senderName)}
+                          <span class="chat-timestamp">${time}</span>
+                        </div>` : ''}
+                      <div class="chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'} group relative">
+                        ${m.parentMessagePreview ? `
+                          <div class="reply-snippet mb-2">
+                             <p class="font-bold opacity-60">Replying to:</p>
+                             <p>${APP.util.escapeHtml(m.parentMessagePreview)}</p>
+                          </div>
+                        ` : ''}
+                        
+                        <div class="${isDeleted ? 'deleted-text' : ''}">
+                          ${isDeleted ? APP.util.escapeHtml(m.content) : highlightMentions(m.content || '')}
+                        </div>
+
+                        ${m.attachmentUrl && m.attachmentUrl !== 'undefined' && !isDeleted ? `
+                          <div class="mt-2 pt-2 border-t ${isMine ? 'border-white/20' : 'border-gray-200'}">
+                             ${String(m.attachmentUrl).toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/) != null ? `
+                               <div class="relative group mt-1 mb-2">
+                                 <img src="${m.attachmentUrl}" alt="Attachment" class="max-w-full rounded-lg max-h-48 cursor-pointer shadow-sm hover:opacity-90" onclick="window.open('${m.attachmentUrl}', '_blank')">
+                                 <button onclick="promoteToPortfolio('${m.attachmentUrl}')" class="absolute top-2 right-2 p-1.5 bg-black/50 text-yellow-400 hover:text-yellow-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" title="Promote to Portfolio">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                 </button>
+                               </div>
+                             ` : `
+                               <a href="${m.attachmentUrl}" target="_blank" class="flex items-center gap-1.5 text-[10px] font-bold hover:underline">
+                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 108.486 8.486L20.5 13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                 View Attachment
+                               </a>
+                             `}
+                          </div>` : ''}
+
+                        <div class="absolute top-1 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} flex gap-1 items-center">
+                           ${!isDeleted ? `
+                             <button onclick="replyToMsg(${m.id}, '${APP.util.escapeHtml(m.content || 'File')}')" class="message-action-btn p-1" title="Reply">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                             </button>
+                           ` : ''}
+                           ${isMine && !isDeleted ? `
+                             <button onclick="deleteChatMsg(${m.id})" class="message-action-btn p-1 hover:text-red-500" title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                             </button>
+                           ` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+          });
+        }
+        
+        const sticky = isSticky(container);
+        container.innerHTML = html;
+        if (sticky) container.scrollTop = container.scrollHeight;
+      } catch (e) {
+        console.error("Chat load failed", e);
+      }
+    }
+
+    async function deleteChatMsg(id) {
+      if (!confirm("Delete this message?")) return;
+      try {
+        await APP.api.delete(`/chat/message/${id}`);
+        loadChatMessages(currentChatProjectId);
+      } catch (e) { APP.toast.error("Deletion failed"); }
+    }
+
+    function replyToMsg(id, content) {
+      pendingReplyTo = id;
+      document.getElementById('replyPreviewText').textContent = content;
+      document.getElementById('replyPreview').style.display = 'block';
+      document.getElementById('chatInput').focus();
+    }
+
+    function cancelReply() {
+      pendingReplyTo = null;
+      document.getElementById('replyPreview').style.display = 'none';
+    }
+
+    async function loadTasksForMilestoneSelect(pid) {
+      try {
+        const tasks = await APP.api.get(`/tasks?projectId=${pid}`);
+        const sel = document.getElementById('msTargetTask');
+        sel.innerHTML = '<option value="">Link to Task (Recommended)</option>' +
+          tasks.map(t => `<option value="${t.id}">${APP.util.escapeHtml(t.title)}</option>`).join('');
+      } catch (e) { }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      const fileUrl = document.getElementById('chatFileName').getAttribute('data-url');
+
+      if (!text && !fileUrl) return;
+      if (!currentChatProjectId) return APP.toast.info("Select a channel first");
+
+      try {
+        const payload = {
+          content: text,
+          attachmentUrl: fileUrl,
+          type: fileUrl ? "FILE" : "TEXT",
+          parentMessageId: pendingReplyTo
+        };
+        await APP.api.post(`/chat/channel/${currentChatProjectId}`, payload);
+        input.value = '';
+        clearChatUpload();
+        cancelReply();
+        loadChatMessages(currentChatProjectId);
+      } catch (e) { APP.toast.error("Message failed"); }
+    }
+
+    async function uploadChatFile() {
+      const fileInput = document.getElementById('chatFile');
+      if (!fileInput.files.length) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        // Use the existing task attachment upload endpoint which is generic enough if we don't care about the taskId being 'chat'
+        // Or we could have a dedicated chat upload. For now, let's use a generic one or assume task 0 for chat.
+        // Actually, let's just upload to a generic path if available. 
+        // Use the correct endpoint for task 0 (system storage)
+        const res = await fetch(`${APP.apiBase}/tasks/0/attachments`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${APP.auth.getToken()}` },
+          body: formData
+        });
+        const data = await res.json();
+        const display = document.getElementById('chatFileName');
+        display.textContent = `📎 ${file.name}`;
+        display.setAttribute('data-url', data.url || '');
+      } catch (e) { APP.toast.error("Upload failed"); }
+    }
+
+    function clearChatUpload() {
+      const d = document.getElementById('chatFileName');
+      d.textContent = '';
+      d.removeAttribute('data-url');
+      document.getElementById('chatFile').value = '';
+    }
+
+    // --- MENTIONS ---
+    function handleMention(e) {
+      const input = e.target;
+      const text = input.value;
+      const pos = input.selectionStart;
+      const lastAt = text.lastIndexOf('@', pos - 1);
+
+      if (lastAt !== -1 && !/\s/.test(text.substring(lastAt + 1, pos))) {
+        const query = text.substring(lastAt + 1, pos).toLowerCase();
+        showMentionPopup(query, lastAt);
+      } else {
+        hideMentionPopup();
+      }
+    }
+
+    function showMentionPopup(query, atPos) {
+      const popup = document.getElementById('mentionPopup');
+      const filtered = channelMembers.filter(m => m.name.toLowerCase().includes(query));
+      if (filtered.length === 0) { hideMentionPopup(); return; }
+
+      popup.innerHTML = filtered.map(m => `
+        <div class="mention-item" onclick="insertMention('${m.name.replace(/'/g, "\\'")}', ${atPos})">
+          <div class="avatar">${m.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}</div>
+          <span class="font-medium">${APP.util.escapeHtml(m.name)}</span>
+        </div>
+      `).join('');
+      popup.classList.remove('hidden');
+    }
+
+    function hideMentionPopup() {
+      document.getElementById('mentionPopup')?.classList.add('hidden');
+    }
+
+    function insertMention(name, atPos) {
+      const input = document.getElementById('chatInput');
+      const text = input.value;
+      const before = text.substring(0, atPos);
+      const after = text.substring(input.selectionStart);
+      input.value = before + '@' + name + ' ' + after;
+      hideMentionPopup();
+      input.focus();
+    }
+
+    function highlightMentions(text) {
+      if (!text) return '';
+      const escaped = APP.util.escapeHtml(text);
+      return escaped.replace(/@([a-zA-Z0-9\s.]{3,20})/g, (match, name) => {
+        const cleanName = name.trim();
+        if (channelMembers.some(m => m.name === cleanName)) {
+          return `<span class="mention-highlight">${match}</span>`;
+        }
+        return match;
+      });
+    }
+
+    let currentPromoteImageUrl = null;
+    function promoteToPortfolio(imageUrl) {
+      currentPromoteImageUrl = imageUrl;
+      document.getElementById('promoteTitle').value = "Project Highlight";
+      document.getElementById('promoteDesc').value = "";
+      document.getElementById('promoteCollection').value = "";
+      document.getElementById('promoteModal').style.display = 'flex';
+    }
+
+    function closePromoteModal() {
+      document.getElementById('promoteModal').style.display = 'none';
+      currentPromoteImageUrl = null;
+    }
+
+    document.getElementById('submitPromoteBtn').onclick = async () => {
+      if (!currentPromoteImageUrl) return;
+      const title = document.getElementById('promoteTitle').value;
+      const description = document.getElementById('promoteDesc').value;
+      const collectionName = document.getElementById('promoteCollection').value;
+
+      try {
+        const btn = document.getElementById('submitPromoteBtn');
+        btn.disabled = true;
+        btn.textContent = "Promoting...";
+        await APP.api.post('/portfolio/promote', { imageUrl: currentPromoteImageUrl, title, description, collectionName });
+        APP.toast.success("Successfully promoted to portfolio!");
+        closePromoteModal();
+      } catch (e) {
+        APP.toast.error("Promotion failed");
+      } finally {
+        const btn = document.getElementById('submitPromoteBtn');
+        btn.disabled = false;
+        btn.textContent = "Promote Image";
+      }
+    };
+    // --- PROJECTS ---
+    async function loadProjects() {
+      try {
+        allProjects = await APP.api.get('/projects');
+        renderProjectTable(allProjects);
+      } catch (e) {
+        APP.toast.error("Failed to load projects");
+      }
+    }
+
+    function renderProjectTable(projects) {
+      const tbody = document.getElementById('projectsTbody');
+      tbody.innerHTML = projects.map(p => `
+            <tr class="hover:bg-gray-50 transition-colors group">
+                <td class="px-6 py-4 font-medium">${APP.util.escapeHtml(p.name)}</td>
+                <td class="px-6 py-4 text-gray-600">${APP.util.escapeHtml(p.clientName || p.userName || 'Unassigned')}</td>
+                <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full bg-gray-100 border">${p.status}</span></td>
+                <td class="px-6 py-4 w-40">${APP.util.progressBar(p.progress)}</td>
+                <td class="px-6 py-4 text-right flex justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="openEditProject(${p.id})" class="px-3 py-1.5 text-xs font-medium border rounded hover:bg-white hover:border-[var(--gold)]">Edit</button>
+                    <button onclick="openDrawer(${p.id}, '${APP.util.escapeHtml(p.name)}')" class="px-3 py-1.5 text-xs font-medium border rounded bg-[var(--gold)] text-[var(--dark)]">Manage</button>
+                    <a href="tasks.html?projectId=${p.id}" class="px-3 py-1.5 text-xs font-medium border rounded hover:bg-gray-100">Tasks</a>
+                </td>
+            </tr>
+        `).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-500">No projects found.</td></tr>`;
+    }
+
+    async function search() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!q) return renderProjectTable(allProjects);
+      const filtered = allProjects.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.clientName && p.clientName.toLowerCase().includes(q))
+      );
+      renderProjectTable(filtered);
+    }
+
+    function renderChart(projects) {
+      // Minimal implementation to keep it working without complex date logic for now
+      // or re-implement the existing chart logic from previous file if valuable
+    }
+
+    // --- MODALS: CREATE / EDIT PROJECT ---
+    const createModal = document.getElementById('createModal');
+
+    function openCreateModal() {
+      editingProjectId = null;
+      document.getElementById('projectModalTitle').textContent = 'New Project';
+      document.getElementById('saveProjectBtn').textContent = 'Create Project';
+      document.getElementById('saveProjectBtn').onclick = createProject;
+      document.getElementById('deleteProjectBtn').classList.add('hidden');
+
+      // Reset form
+      ['projName', 'projLocation', 'projBudget', 'projDesc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('projStatus').value = 'PLANNING';
+      document.getElementById('clientSelect').value = '';
+      updateProgressDisplay(0);
+
+      createModal.classList.remove('hidden');
+      createModal.classList.add('flex');
+    }
+
+    function openEditProject(id) {
+      const p = allProjects.find(x => x.id === id);
+      if (!p) return;
+      editingProjectId = id;
+
+      document.getElementById('projectModalTitle').textContent = 'Edit Project';
+      document.getElementById('saveProjectBtn').textContent = 'Save Changes';
+      document.getElementById('saveProjectBtn').onclick = saveProjectChanges;
+      document.getElementById('deleteProjectBtn').classList.remove('hidden');
+      document.getElementById('deleteProjectBtn').onclick = () => deleteProject(id);
+
+      document.getElementById('projName').value = p.name || '';
+      document.getElementById('projLocation').value = p.location || '';
+      document.getElementById('projBudget').value = p.budget || '';
+      document.getElementById('projDesc').value = p.description || '';
+      document.getElementById('projStatus').value = p.status || 'PLANNING';
+      document.getElementById('clientSelect').value = p.userId || '';
+      document.getElementById('projProgress').value = p.progress || 0;
+      updateProgressDisplay(p.progress || 0);
+
+      createModal.classList.remove('hidden');
+      createModal.classList.add('flex');
+    }
+
+    function closeCreateModal() {
+      createModal.classList.add('hidden');
+      createModal.classList.remove('flex');
+    }
+
+    function updateProgressDisplay(val) {
+      document.getElementById('projProgress').value = val;
+      document.getElementById('projProgressValue').textContent = val + '%';
+    }
+
+    async function loadClientsDropdown() {
+      try {
+        const clients = await APP.api.get('/users/clients');
+        const sel = document.getElementById('clientSelect');
+        sel.innerHTML = '<option value="">-- Select Client --</option>' +
+          (clients || []).map(c => `<option value="${c.id}">${APP.util.escapeHtml(c.name)} (${c.email})</option>`).join('');
+      } catch (e) {
+        console.warn("Failed to load clients for dropdown");
+      }
+    }
+
+    async function createProject() {
+      const payload = {
+        name: document.getElementById('projName').value,
+        location: document.getElementById('projLocation').value,
+        budget: document.getElementById('projBudget').value,
+        description: document.getElementById('projDesc').value,
+        status: document.getElementById('projStatus').value,
+        progress: parseInt(document.getElementById('projProgress').value) || 0,
+        userId: document.getElementById('clientSelect').value
+      };
+
+      try {
+        await APP.api.post('/projects', payload);
+        APP.toast.success("Project created");
+        closeCreateModal();
+        refresh();
+      } catch (e) {
+        APP.toast.error(e.message || "Failed to create project");
+      }
+    }
+
+    async function saveProjectChanges() {
+      if (!editingProjectId) return;
+      const payload = {
+        name: document.getElementById('projName').value,
+        location: document.getElementById('projLocation').value,
+        budget: document.getElementById('projBudget').value,
+        description: document.getElementById('projDesc').value,
+        status: document.getElementById('projStatus').value,
+        progress: parseInt(document.getElementById('projProgress').value) || 0,
+        userId: document.getElementById('clientSelect').value
+      };
+      try {
+        await APP.api.put(`/projects/${editingProjectId}`, payload);
+        APP.toast.success("Project updated");
+        closeCreateModal();
+        refresh();
+      } catch (e) {
+        APP.toast.error(e.message || "Update failed");
+      }
+    }
+
+    async function deleteProject(id) {
+      if (!confirm("Are you sure? This cannot be undone.")) return;
+      try {
+        await APP.api.delete(`/projects/${id}`);
+        APP.toast.success("Project deleted");
+        closeCreateModal();
+        refresh();
+      } catch (e) {
+        APP.toast.error("Delete failed");
+      }
+    }
+
+    // --- DRAWER (TEAM & MILESTONES) ---
+    const drawer = document.getElementById('drawer');
+    let activeProjectId = null;
+
+    async function openDrawer(id, name) {
+      activeProjectId = id;
+      document.getElementById('drawerTitle').textContent = name;
+      document.getElementById('drawerSub').textContent = `Project #${id}`;
+
+      drawer.classList.add('drawer-open');
+
+      await Promise.all([
+        loadTeamInDrawer(id),
+        loadMilestonesInDrawer(id),
+        loadTasksInDrawer(id),
+        loadTeamDirectory(),
+        loadTasksForMilestoneSelect(id)
+      ]);
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('drawer-open');
+    }
+
+    async function loadTeamDirectory() {
+      try {
+        const staff = await APP.api.get('/users/staff');
+        const sel = document.getElementById('memberSelect');
+        // Filter unique by ID just in case
+        const unique = staff.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+
+        sel.innerHTML = unique.map(u =>
+          `<option value="${u.id}">${APP.util.escapeHtml(u.name)} (${u.role})</option>`
+        ).join('');
+      } catch (e) { }
+    }
+
+    async function loadTeamInDrawer(pid) {
+      const list = document.getElementById('teamList');
+      list.innerHTML = '<div class="text-xs text-gray-400">Loading team...</div>';
+      try {
+        const team = await APP.api.get(`/project-members/project/${pid}`);
+        // Filter unique member+role combinations
+        // Note: Backend returns ProjectMember with field 'user'
+        const unique = team.filter((v, i, a) => a.findIndex(t => (t.user.id === v.user.id && t.role === v.role)) === i);
+
+        list.innerHTML = unique.map(t => `
+                <div class="flex items-center justify-between p-2 rounded bg-gray-50 border text-sm">
+                    <div>
+                        <div class="font-medium">${APP.util.escapeHtml(t.user.name)}</div>
+                        <div class="text-xs text-gray-500">${t.role}</div>
+                    </div>
+                    <!-- Pass projectId and userId for deletion -->
+                    <button onclick="removeMember(${t.project.id}, ${t.user.id})" class="text-red-500 hover:text-red-700 text-xs">Remove</button>
+                </div>
+            `).join('') || '<div class="text-sm text-gray-500 italic">No team members allocated.</div>';
+      } catch (e) {
+        console.error(e);
+        list.innerHTML = '<div class="text-red-500 text-xs">Failed to load team.</div>';
+      }
+    }
+
+    async function assignMember() {
+      if (!activeProjectId) return;
+      const memberId = document.getElementById('memberSelect').value;
+      const role = document.getElementById('roleSelect').value;
+      if (!memberId) return APP.toast.error("Select a member");
+
+      try {
+        await APP.api.post('/project-members/assign', {
+          projectId: activeProjectId,
+          userId: memberId,
+          role: role
+        });
+        loadTeamInDrawer(activeProjectId);
+        APP.toast.success("Member assigned");
+      } catch (e) {
+        APP.toast.error(e.message || "Failed to assign");
+      }
+    }
+
+    async function removeMember(projectId, userId) {
+      if (!confirm("Remove this member from project?")) return;
+      try {
+        await APP.api.delete(`/project-members/remove?projectId=${projectId}&userId=${userId}`);
+        loadTeamInDrawer(activeProjectId);
+        APP.toast.success("Removed");
+      } catch (e) {
+        APP.toast.error("Failed to remove");
+      }
+    }
+
+    async function loadTasksInDrawer(pid) {
+      const el = document.getElementById('taskList');
+      el.innerHTML = '<div class="text-xs text-gray-400">Loading tasks...</div>';
+      try {
+        const tasks = await APP.api.get(`/tasks?projectId=${pid}`);
+        el.innerHTML = tasks.map(t => `
+                <div class="p-3 bg-white border rounded-lg group relative flex justify-between items-center">
+                    <div>
+                        <div class="text-sm font-medium">${APP.util.escapeHtml(t.title)}</div>
+                        <div class="text-[10px] text-gray-400">${t.status} | ${t.priority}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="discussItem('TASK', ${t.id}, '${APP.util.escapeHtml(t.title)}')" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[var(--gold)]" title="Discuss in Chat">
+                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                        </button>
+                        <a href="tasks.html?projectId=${pid}&taskId=${t.id}" class="px-2 py-1 text-[10px] border rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">Full View</a>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-sm text-gray-500 italic">No tasks yet.</div>';
+      } catch (e) { el.innerHTML = ''; }
+    }
+    async function loadMilestonesInDrawer(pid) {
+      const list = document.getElementById('milestoneList');
+      list.innerHTML = '<div class="text-xs text-gray-400">Loading...</div>';
+      try {
+        const ms = await APP.api.get(`/milestones/project/${pid}`);
+        list.innerHTML = ms.map(m => `
+                <div class="p-3 border rounded-lg bg-white shadow-sm">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="font-medium text-sm">${APP.util.escapeHtml(m.name)}</div>
+                         <button onclick="deleteMilestone(${m.id})" class="text-gray-400 hover:text-red-500">×</button>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-2">${APP.util.escapeHtml(m.description || '')}</div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">Due: ${m.dueDate || '-'}</span>
+                         <div class="flex items-center gap-2">
+                            <button onclick="discussItem('MILESTONE', ${m.id}, '${APP.util.escapeHtml(m.name)}')" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[var(--gold)]" title="Discuss in Chat">
+                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                            </button>
+                            <span class="font-bold text-[var(--gold)]">${m.progress || 0}%</span>
+                         </div>
+                    </div>
+                    <!-- Simple progress slider -->
+                    <input type="range" class="w-full mt-2 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--gold)]" 
+                           min="0" max="100" value="${m.progress || 0}" 
+                           onchange="updateMilestoneProgress(${m.id}, this.value)">
+                </div>
+            `).join('') || '<div class="text-sm text-gray-500 italic">No milestones defined.</div>';
+      } catch (e) {
+        list.innerHTML = '<div class="text-red-500 text-xs">Failed to load milestones.</div>';
+      }
+    }
+
+    function showMilestoneForm() { document.getElementById('milestoneForm').classList.remove('hidden'); }
+    function hideMilestoneForm() { document.getElementById('milestoneForm').classList.add('hidden'); }
+
+    async function createMilestone() {
+      if (!activeProjectId) return;
+      const targetTaskId = document.getElementById('msTargetTask').value;
+      const body = {
+        name: document.getElementById('msName').value,
+        description: document.getElementById('msDesc').value,
+        dueDate: document.getElementById('msDue').value,
+        linkedTaskId: targetTaskId ? parseInt(targetTaskId) : null,
+        progress: 0
+      };
+      try {
+        await APP.api.post(`/milestones/project/${activeProjectId}`, body);
+        APP.toast.success("Milestone added");
+        hideMilestoneForm();
+        loadMilestonesInDrawer(activeProjectId);
+      } catch (e) { APP.toast.error("Failed to add milestone"); }
+    }
+
+    async function updateMilestoneProgress(id, val) {
+      try {
+        await APP.api.put(`/milestones/${id}`, { progress: parseInt(val) });
+        APP.toast.success("Progress updated");
+      } catch (e) { }
+    }
+
+    async function deleteMilestone(id) {
+      if (!confirm("Delete milestone?")) return;
+      try {
+        await APP.api.delete(`/milestones/${id}`);
+        APP.toast.success("Milestone removed");
+        loadMilestonesInDrawer(activeProjectId);
+        refresh(); // Update dashboard stats/charts
+      } catch (e) { APP.toast.error("Delete failed: " + e.message); }
+    }
+
+    // --- CLIENT & TEAM LIST MODALS ---
+    const clientsModal = document.getElementById('clientsModal');
+    const teamListModal = document.getElementById('teamListModal');
+
+    function openClientsModal() {
+      clientsModal.classList.remove('hidden');
+      clientsModal.classList.add('flex');
+      loadClientsModalData();
+    }
+    function closeClientsModal() { clientsModal.classList.add('hidden'); clientsModal.classList.remove('flex'); }
+
+    function openTeamListModal() {
+      teamListModal.classList.remove('hidden');
+      teamListModal.classList.add('flex');
+      loadTeamListModalData();
+    }
+    function closeTeamListModal() { teamListModal.classList.add('hidden'); teamListModal.classList.remove('flex'); }
+
+    async function loadClientsModalData() {
+      const tbody = document.getElementById('clientsTbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">Loading...</td></tr>';
+
+      try {
+        // Fetch clients
+        const clients = await APP.api.get('/users/clients');
+
+        tbody.innerHTML = clients.map(c => `
+                <tr class="hover:bg-gray-50 border-b last:border-0">
+                    <td class="px-6 py-4 font-medium">${APP.util.escapeHtml(c.name)}</td>
+                    <td class="px-6 py-4 text-gray-500">${APP.util.escapeHtml(c.email)}</td>
+                    <td class="px-6 py-4">-</td> <!-- TODO: Fetch user's project if needed -->
+                    <td class="px-6 py-4">${c.active ? '<span class="text-green-600">Active</span>' : 'Inactive'}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteClient(${c.id})" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="p-4 text-center">No clients.</td></tr>';
+
+      } catch (e) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-red-500">Error loading data</td></tr>'; }
+    }
+
+    async function deleteClient(id) {
+      if (!confirm("Delete this client and their data?")) return;
+      try {
+        await APP.api.request(`/admin/clients/${id}?hard=true`, { method: 'DELETE' });
+        APP.toast.success("Client deleted");
+        loadClientsModalData();
+      } catch (e) { APP.toast.error("Failed"); }
+    }
+
+    async function loadTeamListModalData() {
+      const tbody = document.getElementById('teamTbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">Loading...</td></tr>';
+      try {
+        const members = await APP.api.get('/users/staff');
+        tbody.innerHTML = members.map(m => `
+                <tr class="hover:bg-gray-50 border-b last:border-0">
+                    <td class="px-6 py-4 font-medium">${APP.util.escapeHtml(m.name)}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 bg-blue-50 text-blue-800 rounded text-xs">${m.role}</span></td>
+                    <td class="px-6 py-4 text-gray-500">${APP.util.escapeHtml(m.email)}</td>
+                    <td class="px-6 py-4 text-gray-500">${APP.util.escapeHtml(m.phone || '-')}</td>
+                    <td class="px-6 py-4 text-right">
+                         <button onclick="editTeamMember(${m.id})" class="text-blue-600 hover:underline text-sm mr-3">Edit</button>
+                         <button onclick="deleteTeamMember(${m.id})" class="text-red-600 hover:underline text-sm">Remove</button>
+                    </td>
+                </tr>
+            `).join('');
+      } catch (e) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-red-500">Error loading team</td></tr>'; }
+    }
+
+    // --- TEAM MEMBER CRUD ---
+    const createMemberModal = document.getElementById('createMemberModal');
+    function openCreateMemberModal() {
+      editMemberId = null;
+      ['tmName', 'tmEmail', 'tmPassword', 'tmPhone', 'tmSpec'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('tmRole').value = 'PROJECT_MANAGER';
+      document.getElementById('teamMemberModalTitle').textContent = 'New Team Member';
+      document.getElementById('memberSubmitBtn').textContent = 'Create Member';
+
+      createMemberModal.classList.remove('hidden');
+      createMemberModal.classList.add('flex');
+    }
+    function closeCreateMemberModal() { createMemberModal.classList.add('hidden'); createMemberModal.classList.remove('flex'); }
+
+    async function createTeamMember() {
+      const payload = {
+        name: document.getElementById('tmName').value,
+        email: document.getElementById('tmEmail').value,
+        initialPassword: document.getElementById('tmPassword').value,
+        phone: document.getElementById('tmPhone').value,
+        role: document.getElementById('tmRole').value,
+        specialization: document.getElementById('tmSpec').value,
+        active: true
+      };
+
+      try {
+        if (editMemberId) {
+          // Update
+          await APP.api.put(`/admin/team-members/${editMemberId}`, payload);
+          APP.toast.success("Member updated");
+        } else {
+          // Create
+          await APP.api.post('/admin/team-members', payload);
+          APP.toast.success("Member created");
+        }
+        closeCreateMemberModal();
+        if (!teamListModal.classList.contains('hidden')) loadTeamListModalData();
+      } catch (e) {
+        APP.toast.error(e.message || "Operation failed");
+      }
+    }
+
+    async function editTeamMember(id) {
+      try {
+        closeTeamListModal();
+        const m = await APP.api.get(`/users/${id}`);
+        editMemberId = id;
+        document.getElementById('tmName').value = m.name;
+        document.getElementById('tmEmail').value = m.email;
+        document.getElementById('tmPassword').value = ''; // Don't show password
+        document.getElementById('tmPhone').value = m.phone;
+        document.getElementById('tmRole').value = m.role;
+        document.getElementById('tmSpec').value = m.specialization;
+
+        document.getElementById('teamMemberModalTitle').textContent = 'Edit Team Member';
+        document.getElementById('memberSubmitBtn').textContent = 'Update Member';
+
+        createMemberModal.classList.remove('hidden');
+        createMemberModal.classList.add('flex');
+      } catch (e) { APP.toast.error("Failed to load member details"); }
+    }
+
+    async function deleteTeamMember(id) {
+      if (!confirm("Remove this team member?")) return;
+      try {
+        await APP.api.delete(`/admin/users/${id}`);
+        APP.toast.success("Deleted");
+        loadTeamListModalData();
+      } catch (e) { APP.toast.error("Failed to delete"); }
+    }
+
+    function discussItem(type, id, name) {
+      if (!activeProjectId) return APP.toast.info("Select a project first");
+      
+      const targetChannel = "P_" + activeProjectId;
+      const d = document.getElementById('chatDrawer');
+      // Open chat if closed
+      if (!d.classList.contains('drawer-open')) {
+          toggleChat(targetChannel);
+      } else {
+          selectChatChannel(targetChannel);
+      }
+
+      const input = document.getElementById('chatInput');
+      const ref = `[${type} #${id}] Discussing: ${name}\n`;
+      input.value = ref + input.value;
+      input.focus();
+    }
+
+    async function openNewChannelModal() {
+      document.getElementById('newChannelName').value = '';
+      try {
+        const users = await APP.api.get('/users/all');
+        const list = document.getElementById('channelMembersList');
+        const myEmail = APP.auth.getEmail();
+        list.innerHTML = users.filter(u => u.email !== myEmail).map(u => `
+          <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+            <input type="checkbox" value="${u.id}" class="channel-user-cb rounded text-[var(--gold)] focus:ring-[var(--gold)]">
+            <span class="text-sm truncate">${APP.util.escapeHtml(u.name)} <span class="text-xs text-gray-400">(${u.role})</span></span>
+          </label>
+        `).join('');
+        document.getElementById('newChannelModal').classList.remove('hidden');
+        document.getElementById('newChannelModal').classList.add('flex');
+      } catch (e) {
+        APP.toast.error("Failed to load users for channel");
+      }
+    }
+
+    function closeNewChannelModal() {
+      document.getElementById('newChannelModal').classList.add('hidden');
+      document.getElementById('newChannelModal').classList.remove('flex');
+    }
+
+    async function submitNewChannel() {
+      const name = document.getElementById('newChannelName').value.trim();
+      if (!name) return APP.toast.error("Name is required");
+
+      const cbs = document.querySelectorAll('.channel-user-cb:checked');
+      const memberIds = Array.from(cbs).map(cb => parseInt(cb.value, 10));
+
+      if (memberIds.length === 0) return APP.toast.error("Select at least one member");
+
+      try {
+        const res = await fetch(`${APP.apiBase}/chat/channels/group?name=${encodeURIComponent(name)}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${APP.auth.getToken()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(memberIds)
+        });
+        if (!res.ok) throw new Error("Failed");
+
+        closeNewChannelModal();
+        APP.toast.success("Channel created");
+
+        if (chatOpen) {
+          myChannels = await APP.api.get('/chat/channels');
+          loadChatChannelList();
+        }
+      } catch (e) {
+        APP.toast.error("Failed to create channel");
+      }
+    }
+
+
+  </script>
+
+  <!-- TELEGRAM-STYLE CHAT DRAWER -->
+  <div id="chatDrawer" class="chat-drawer">
+    <!-- Sidebar: Project List -->
+    <div class="chat-sidebar">
+      <div class="p-6 border-b flex items-center justify-between bg-white relative">
+        <h3 class="font-bold text-lg flex items-center gap-2">
+          Channels
+          <button onclick="openNewChannelModal()"
+            class="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors shadow-sm"
+            title="New Group Channel">+</button>
+        </h3>
+        <button onclick="toggleChat()" class="p-1 hover:bg-gray-100 rounded-lg md:hidden">✕</button>
+      </div>
+      <div class="p-4 border-b">
+        <div class="relative">
+          <input type="text" id="chatSearch" placeholder="Search channels..."
+            class="w-full p-2 pl-8 bg-gray-100 border-none rounded-lg text-sm focus:ring-1 focus:ring-[var(--gold)]"
+            oninput="filterChatList()">
+          <svg class="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="2" />
+          </svg>
+        </div>
+      </div>
+      <div id="chatProjectList" class="flex-1 overflow-y-auto">
+        <!-- Project items will be injected here -->
+      </div>
+    </div>
+
+    <!-- Main Chat Content -->
+    <div class="chat-main" id="chatMainArea">
+      <!-- Chat Header -->
+      <div class="p-4 border-b flex justify-between items-center bg-white shadow-sm z-10">
+        <div class="flex items-center gap-3">
+          <div id="activeChatAvatar" class="chat-list-avatar w-10 h-10 hidden"></div>
+          <div>
+            <h3 id="chatTitle" class="font-bold text-base leading-tight">Select a Channel</h3>
+            <div id="chatStatusInfo" class="flex items-center gap-1.5 mt-0.5 hidden">
+              <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              <p id="chatSub" class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Online</p>
+            </div>
+          </div>
+        </div>
+        <button onclick="toggleChat()"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-xl hidden md:block">✕</button>
+      </div>
+
+      <!-- Messages Area -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-6 flex flex-col gap-3 bg-[#f0f2f5] scroll-smooth">
+        <div class="chat-empty-state">
+          <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+            <span class="text-3xl">💬</span>
+          </div>
+          <p class="text-sm font-medium">Choose a project to start chatting</p>
+          <p class="text-xs mt-1">Select from your projects on the left</p>
+        </div>
+      </div>
+
+      <!-- Input Area (Only visible when project is active) -->
+      <div id="chatInputSection" class="p-4 bg-white border-t hidden">
+        <!-- Reply Preview Area -->
+        <div id="replyPreview">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <p class="text-[10px] font-bold text-[var(--gold)] uppercase tracking-wider">Replying to message</p>
+              <p id="replyPreviewText" class="text-xs text-gray-600 truncate"></p>
+            </div>
+            <button onclick="cancelReply()" class="text-gray-400 hover:text-gray-600">✕</button>
+          </div>
+        </div>
+
+        <div class="chat-input-area shadow-sm relative">
+          <div id="mentionPopup"
+            class="absolute bottom-full left-0 w-full bg-white border shadow-lg rounded-t-lg hidden z-50 overflow-y-auto max-h-40">
+          </div>
+          <textarea id="chatInput" placeholder="Write a message..."
+            class="w-full p-3 bg-transparent text-sm outline-none resize-none" rows="1" oninput="handleMention(event)"
+            onkeypress="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendChatMessage(); }"></textarea>
+          <div class="flex items-center justify-between px-2 pb-2">
+            <div class="flex items-center gap-2">
+              <button onclick="document.getElementById('chatFile').click()"
+                class="p-1.5 hover:bg-gray-100 rounded transition-colors text-gray-500 hover:text-[var(--gold)]"
+                title="Attach file">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 108.486 8.486L20.5 13"
+                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                </svg>
+              </button>
+              <div id="chatFileName" class="text-[10px] text-[var(--gold)] font-bold truncate max-w-[200px]"></div>
+            </div>
+            <button onclick="sendChatMessage()"
+              class="bg-[var(--gold)] text-white p-2 rounded-full hover:shadow-lg transition-all transform active:scale-95">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <input type="file" id="chatFile" class="hidden" onchange="uploadChatFile()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- New Channel Modal -->
+  <div id="newChannelModal"
+    class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[2000] backdrop-blur-sm">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+      <h3 class="font-bold text-xl mb-4 text-[#1A1A1A]">Create New Channel</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Channel Name</label>
+          <input type="text" id="newChannelName"
+            class="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-[var(--gold)] focus:outline-none"
+            placeholder="e.g. Design Team">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Select Members</label>
+          <div id="channelMembersList" class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1">
+            <!-- users check boxes -->
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button type="button" onclick="closeNewChannelModal()"
+          class="px-4 py-2 text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
+        <button type="button" onclick="submitNewChannel()"
+          class="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[var(--gold)] hover:bg-[#aa8800] transition-colors shadow-md">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openPortfolioModal() {
+      document.getElementById('portfolioModal').style.display = 'flex';
+      loadPortfolioAdmin();
+    }
+    function closePortfolioModal() {
+      document.getElementById('portfolioModal').style.display = 'none';
+    }
+    
+    let adminPortfolioData = [];
+    async function loadPortfolioAdmin() {
+      try {
+        adminPortfolioData = await APP.api.get('/portfolio');
+        filterPortfolioAdmin();
+      } catch(e) {
+         APP.toast.error("Failed to load portfolio items");
+      }
+    }
+
+    function filterPortfolioAdmin() {
+        const tb = document.getElementById('portfolioTbody');
+        const colFilter = (document.getElementById('filterPortfolioCollection').value || '').toLowerCase();
+        const titleFilter = (document.getElementById('filterPortfolioTitle').value || '').toLowerCase();
+        
+        const filtered = adminPortfolioData.filter(t => {
+            const cName = (t.collectionName || 'General').toLowerCase();
+            const tName = (t.title || '').toLowerCase();
+            return cName.includes(colFilter) && tName.includes(titleFilter);
+        });
+
+        if(filtered.length === 0) {
+            tb.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No portfolio items found.</td></tr>`;
+            return;
+        }
+        tb.innerHTML = filtered.map(t => `
+          <tr>
+             <td class="px-6 py-4"><img src="${t.imageUrl}" class="w-16 h-16 object-cover rounded" /></td>
+             <td class="px-6 py-4 text-xs font-bold text-[var(--gold)] uppercase tracking-wider">${APP.util.escapeHtml(t.collectionName || 'General')}</td>
+             <td class="px-6 py-4 font-medium">${APP.util.escapeHtml(t.title)}</td>
+             <td class="px-6 py-4">${APP.util.escapeHtml(t.description || '-')}</td>
+             <td class="px-6 py-4 text-right">
+                <button onclick="demotePortfolio(${t.id})" class="px-3 py-1 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100">Demote</button>
+             </td>
+          </tr>
+        `).join('');
+    }
+    
+    async function demotePortfolio(id) {
+       if(!confirm("Are you sure you want to demote this image from the portfolio?")) return;
+       try {
+           await APP.api.delete('/portfolio/' + id);
+           APP.toast.success("Image demoted from portfolio");
+           loadPortfolioAdmin(); // refresh list
+       } catch(e) {
+           APP.toast.error("Failed to demote");
+       }
+    }
+
+    // --- ANALYTICS & LOGGING LOGIC ---
+    let activityChart = null;
+    let categoryChart = null;
+    let logPollInterval = null;
+
+    function openAnalytics() {
+        document.getElementById('projectSection').classList.add('hidden');
+        document.getElementById('analyticsSection').classList.remove('hidden');
+        loadAnalyticsData();
+        startLogPolling();
+    }
+
+    function clearAuditFilters() {
+        ['filterUser', 'filterAction', 'filterCategory', 'filterIP'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('filterStatus').value = '';
+        loadAuditLogs(0);
+    }
+
+    function closeAnalytics() {
+        document.getElementById('projectSection').classList.remove('hidden');
+        document.getElementById('analyticsSection').classList.add('hidden');
+        stopLogPolling();
+    }
+
+    async function loadAnalyticsData() {
+        loadAuditLogs(0);
+        loadActivityStats();
+        loadCategoryStats();
+        loadTopUsers();
+        loadLiveLogs();
+    }
+
+    async function loadAuditLogs(page) {
+        const user = document.getElementById('filterUser').value;
+        const action = document.getElementById('filterAction').value;
+        const cat = document.getElementById('filterCategory').value;
+        const status = document.getElementById('filterStatus').value;
+        const ip = document.getElementById('filterIP').value;
+
+        const params = new URLSearchParams({
+            page: page,
+            size: 50,
+            userEmail: user,
+            action: action,
+            category: cat,
+            status: status,
+            ipAddress: ip
+        });
+
+        try {
+            const res = await APP.api.get(`/admin/analytics/logs?${params.toString()}`);
+            const tbody = document.getElementById('auditTbody');
+            tbody.innerHTML = res.content.map(l => `
+                <tr class="hover:bg-gray-50 border-b last:border-0">
+                    <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${new Date(l.timestamp).toLocaleString()}</td>
+                    <td class="px-4 py-3 font-medium">${APP.util.escapeHtml(l.userEmail)}</td>
+                    <td class="px-4 py-3"><code class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border">${APP.util.escapeHtml(l.action)}</code></td>
+                    <td class="px-4 py-3"><span class="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[9px] border border-blue-100">${l.category}</span></td>
+                    <td class="px-4 py-3">
+                        <span class="${l.status === 'SUCCESS' ? 'text-green-600' : 'text-red-600'} font-bold">${l.status}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-400 font-mono">${l.ipAddress || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="viewLogTrace('${l.userEmail}', '${l.timestamp}')" 
+                                title="View System Trace"
+                                class="p-1.5 text-gray-400 hover:text-[var(--gold)] hover:bg-gray-100 rounded-lg transition-all">
+                            <i class="fas fa-microchip"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="p-8 text-center text-gray-400 italic">No logs match your filter criteria</td></tr>';
+            
+            // Pagination
+            const pag = document.getElementById('auditPagination');
+            pag.innerHTML = '';
+            if (res.totalPages > 1) {
+                for (let i = 0; i < Math.min(10, res.totalPages); i++) {
+                    pag.innerHTML += `<button onclick="loadAuditLogs(${i})" class="px-3 py-1 text-[10px] font-bold border rounded-lg transition-all ${res.number === i ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}">${i + 1}</button>`;
+                }
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function viewLogTrace(email, timestamp) {
+        // Use a short snippet of email and date to find logs around that event
+        const query = email; 
+        const console = document.getElementById('logConsole');
+        console.innerHTML = `[System] Searching deep logs for: ${query}...\n`;
+        
+        try {
+            const lines = await APP.api.get(`/admin/analytics/system/search?query=${encodeURIComponent(query)}`);
+            if (!lines || lines.length === 0) {
+                console.innerHTML += `[System] No direct traces found in application.log for this event.`;
+            } else {
+                console.innerHTML = lines.map(line => {
+                   // Highlight the query
+                   const highlighted = line.replace(new RegExp(query, 'gi'), match => `<span class="bg-yellow-500/30 text-white px-1 rounded">${match}</span>`);
+                   return highlighted;
+                }).join('\n');
+            }
+            console.scrollTop = 0;
+        } catch (e) {
+            console.innerHTML += `[Error] Deep search failed: ${e.message}`;
+        }
+    }
+
+    async function loadActivityStats() {
+        try {
+            const data = await APP.api.get('/admin/analytics/activity-stats');
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            
+            if (activityChart) activityChart.destroy();
+            
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.hour.split(' ')[1]),
+                    datasets: [{
+                        label: 'Internal Operations',
+                        data: data.map(d => d.count),
+                        borderColor: '#DAA520',
+                        backgroundColor: 'rgba(218, 165, 32, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                }
+            });
+        } catch (e) { }
+    }
+
+    async function loadCategoryStats() {
+        try {
+            const data = await APP.api.get('/admin/analytics/category-breakdown');
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            if (categoryChart) categoryChart.destroy();
+            
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.category),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: ['#DAA520', '#2D3748', '#4A5568', '#A0AEC0', '#EDF2F7']
+                    }]
+                },
+                options: {
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+                }
+            });
+        } catch (e) { }
+    }
+
+    async function loadTopUsers() {
+        try {
+            const data = await APP.api.get('/admin/analytics/top-users');
+            const list = document.getElementById('topUsersList');
+            list.innerHTML = data.map(u => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-white">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-[var(--gold)] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                      ${u.user_email.substring(0,2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">${APP.util.escapeHtml(u.user_email)}</div>
+                      <div class="text-[10px] text-gray-400 uppercase tracking-tighter font-bold">Power User</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-bold text-[var(--gold)]">${u.count}</div>
+                    <div class="text-[9px] text-gray-400 uppercase">Actions</div>
+                  </div>
+                </div>
+            `).join('') || '<div class="text-center text-gray-400 text-xs py-4">No activity recorded yet</div>';
+        } catch (e) { }
+    }
+
+    let activeLogLevel = ''; 
+
+    function setLogLevelFilter(level) {
+        activeLogLevel = level;
+        document.querySelectorAll('.log-level-btn').forEach(btn => {
+            if (btn.getAttribute('data-level') === level) {
+                btn.classList.add('active-level');
+            } else {
+                btn.classList.remove('active-level');
+            }
+        });
+        loadLiveLogs();
+    }
+
+    function isSticky(el) {
+        return (el.scrollHeight - el.scrollTop) <= (el.clientHeight + 80);
+    }
+
+    async function loadLiveLogs() {
+        try {
+            const logs = await APP.api.get(`/admin/analytics/system/live-logs?level=${activeLogLevel}`);
+            const consoleEl = document.getElementById('logConsole');
+            const filter = document.getElementById('consoleFilterInput').value.toLowerCase();
+            
+            let filteredLogs = logs;
+            if (filter) {
+                filteredLogs = logs.filter(l => l.toLowerCase().includes(filter));
+            }
+            
+            const sticky = isSticky(consoleEl);
+            
+            consoleEl.innerHTML = filteredLogs.map(line => {
+                let colorClass = 'text-gray-300';
+                if (line.includes(' ERROR ')) colorClass = 'text-red-500 font-bold';
+                else if (line.includes(' WARN ')) colorClass = 'text-yellow-500 font-bold';
+                else if (line.includes(' INFO ')) colorClass = 'text-blue-400';
+                
+                // Keep stack trace visual grouping
+                const formatted = line.replace(/\n/g, '<br>&nbsp;&nbsp;&nbsp;&nbsp;');
+                return `<div class="${colorClass} mb-1 border-b border-gray-800/50 pb-1">${formatted}</div>`;
+            }).join('');
+
+            if (sticky) consoleEl.scrollTop = consoleEl.scrollHeight;
+        } catch (e) { }
+    }
+
+    function startLogPolling() {
+        if (logPollInterval) clearInterval(logPollInterval);
+        logPollInterval = setInterval(loadLiveLogs, 5000);
+    }
+
+    function stopLogPolling() {
+        if (logPollInterval) clearInterval(logPollInterval);
+    }
+  </script>
+</body>
+
+</html>

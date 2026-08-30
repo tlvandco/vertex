@@ -1,0 +1,34 @@
+﻿[
+    {
+        "id":  11,
+        "name":  "test project 2",
+        "userId":  19,
+        "userName":  "Lalith",
+        "status":  "IN_PROGRESS",
+        "progress":  36,
+        "startDate":  null,
+        "expectedCompletion":  null,
+        "budget":  "100000",
+        "location":  "india",
+        "imageUrl":  null,
+        "milestones":  [
+
+                       ]
+    },
+    {
+        "id":  10,
+        "name":  "test project - lalith",
+        "userId":  19,
+        "userName":  "Lalith",
+        "status":  "ON_HOLD",
+        "progress":  0,
+        "startDate":  null,
+        "expectedCompletion":  null,
+        "budget":  "100000",
+        "location":  "india",
+        "imageUrl":  null,
+        "milestones":  [
+
+                       ]
+    }
+]

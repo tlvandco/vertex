@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project Tasks — Anantha Design Group</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      safelist: [
+        'bg-gray-100', 'bg-blue-50', 'bg-green-50', 'bg-yellow-50',
+        'border-gray-200', 'border-blue-200', 'border-green-200', 'border-yellow-200',
+        'text-gray-700', 'text-blue-700', 'text-green-700', 'text-yellow-700'
+      ]
+    }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .kanban-col {
+      min-height: 70vh;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    .task-card {
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .task-card:active {
+      cursor: grabbing;
+    }
+
+    .task-card.dragging {
+      opacity: 0.5;
+    }
+
+    /* Profile Dropdown */
+    .profile-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      width: 200px;
+      background: white;
+      border: 1px border-gray-100;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      display: none;
+      z-index: 50;
+      padding: 0.5rem;
+    }
+
+    .profile-dropdown.show {
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-[var(--muted)] min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white/80 backdrop-blur-md drop-shadow-sm sticky top-0 z-40 flex-none">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="javascript:history.back()"
+          class="text-sm px-3 py-1.5 border rounded hover:bg-gray-50 flex items-center gap-1">
+          <span>←</span> Back
+        </a>
+        <h1 id="projTitle" class="text-xl font-serif font-bold text-[var(--dark)]">Tasks Board</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openCreateTaskModal('BACKLOG')"
+          class="px-3 py-2 btn-gold rounded-lg text-sm font-medium shadow-sm transition-transform active:scale-95"> +
+          New Task</button>
+        <button onclick="reloadBoard()" class="px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm">↻ Refresh</button>
+
+        <!-- Profile Dropdown -->
+        <div class="relative ml-2">
+          <button onclick="toggleProfileMenu()"
+            class="w-10 h-10 rounded-full bg-[var(--gold)] text-white flex items-center justify-center font-bold shadow-sm hover:opacity-90 transition-all border-2 border-white ring-1 ring-gray-100">
+            <span id="navInitials">AD</span>
+          </button>
+          <div id="profileMenu" class="profile-dropdown">
+            <div class="px-4 py-3 border-b mb-1">
+              <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Account</p>
+              <p id="navUserName" class="text-sm font-bold text-gray-800 truncate">User Name</p>
+            </div>
+            <a id="navDashboardLink" href="user-dashboard.html"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">🏠 Dashboard</a>
+            <button onclick="APP.auth.logout()"
+              class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-1">🚪 Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- BOARD -->
+  <main class="flex-1 overflow-x-auto p-4 md:p-6">
+    <div class="min-w-[1000px] grid grid-cols-4 gap-6 h-full">
+
+      <!-- Backlog -->
+      <div class="flex flex-col h-full bg-white/50 rounded-xl border border-white/60 p-1">
+        <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+          <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-gray-400"></span> Backlog
+          </h3>
+          <span id="count-BACKLOG" class="text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">0</span>
+        </div>
+        <div id="col-BACKLOG" class="kanban-col p-2 space-y-3 flex-1" ondragover="allowDrop(event)"
+          ondrop="onDrop(event,'BACKLOG')"></div>
+      </div>
+
+      <!-- In Progress -->
+      <div class="flex flex-col h-full bg-blue-50/50 rounded-xl border border-blue-100/60 p-1">
+        <div class="p-3 border-b border-blue-100 flex justify-between items-center">
+          <h3 class="font-semibold text-blue-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> In Progress
+          </h3>
+          <span id="count-IN_PROGRESS" class="text-xs bg-blue-200 px-2 py-0.5 rounded-full text-blue-800">0</span>
+        </div>
+        <div id="col-IN_PROGRESS" class="kanban-col p-2 space-y-3 flex-1" ondragover="allowDrop(event)"
+          ondrop="onDrop(event,'IN_PROGRESS')"></div>
+      </div>
+
+      <!-- Review -->
+      <div class="flex flex-col h-full bg-yellow-50/50 rounded-xl border border-yellow-100/60 p-1">
+        <div class="p-3 border-b border-yellow-100 flex justify-between items-center">
+          <h3 class="font-semibold text-yellow-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Review
+          </h3>
+          <span id="count-REVIEW" class="text-xs bg-yellow-200 px-2 py-0.5 rounded-full text-yellow-800">0</span>
+        </div>
+        <div id="col-REVIEW" class="kanban-col p-2 space-y-3 flex-1" ondragover="allowDrop(event)"
+          ondrop="onDrop(event,'REVIEW')"></div>
+      </div>
+
+      <!-- Done -->
+      <div class="flex flex-col h-full bg-green-50/50 rounded-xl border border-green-100/60 p-1">
+        <div class="p-3 border-b border-green-100 flex justify-between items-center">
+          <h3 class="font-semibold text-green-800 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span> Done
+          </h3>
+          <span id="count-DONE" class="text-xs bg-green-200 px-2 py-0.5 rounded-full text-green-800">0</span>
+        </div>
+        <div id="col-DONE" class="kanban-col p-2 space-y-3 flex-1" ondragover="allowDrop(event)"
+          ondrop="onDrop(event,'DONE')"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- TASK MODAL -->
+  <div id="taskModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh] shadow-2xl">
+      <div class="p-6 border-b flex justify-between items-center">
+        <h3 id="taskModalTitle" class="text-xl font-bold font-serif">Task Details</h3>
+        <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 space-y-6">
+        <div class="space-y-4">
+          <input id="tTitle"
+            class="w-full text-lg font-semibold placeholder-gray-400 border-b-2 border-gray-100 focus:border-[var(--gold)] outline-none py-2 transition-colors"
+            placeholder="Task Title (e.g. Finalize Floor Plan)" />
+
+          <div class="relative flex items-center">
+            <input id="tLocation"
+              class="w-full text-sm p-2 bg-gray-50 rounded border border-gray-100 focus:border-[var(--gold)] outline-none transition-colors pr-10 cursor-alias"
+              placeholder="📍 Task Location (e.g. Living Room, Site A)"
+              onclick="if(this.value && this.value.includes('GPS:')) APP.util.openInMaps(this.value)" />
+            <button onclick="APP.geo.pick('tLocation')" type="button"
+              class="absolute right-2 p-1.5 text-gray-400 hover:text-[var(--gold)] transition-colors"
+              title="Use current location">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Status</label>
+              <select id="tStatus" class="w-full p-2 bg-gray-50 rounded border cursor-pointer hover:bg-gray-100">
+                <option value="BACKLOG">Backlog</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="REVIEW">Review</option>
+                <option value="DONE">Done</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Priority</label>
+              <select id="tPriority" class="w-full p-2 bg-gray-50 rounded border cursor-pointer hover:bg-gray-100">
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Assignee</label>
+              <select id="tAssignee" class="w-full p-2 bg-gray-50 rounded border cursor-pointer"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Due Date</label>
+              <input id="tDue" type="date" class="w-full p-2 bg-gray-50 rounded border" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Description</label>
+            <textarea id="tDesc" rows="3"
+              class="w-full p-3 bg-gray-50 rounded border focus:ring-1 focus:ring-[var(--gold)] outline-none"
+              placeholder="Add detailed description..."></textarea>
+          </div>
+        </div>
+
+        <!-- ATTACHMENTS SECTION IN EDIT MODE -->
+        <div id="attachmentsSection" class="hidden border-t pt-4">
+          <div class="mb-3">
+            <label class="block text-xs font-semibold text-gray-500 uppercase mb-2">Attachments / Proofs</label>
+            <div class="flex gap-2">
+              <input id="attNote" class="flex-1 text-xs p-2 border rounded bg-gray-50"
+                placeholder="Optional photo note..." />
+              <button onclick="triggerUpload()"
+                class="px-3 py-1.5 bg-[var(--gold)] text-white text-xs font-medium rounded hover:opacity-90">+ Add
+                File</button>
+            </div>
+            <input type="file" id="hiddenFileInput" class="hidden" onchange="handleFileUpload(this)">
+          </div>
+          <div id="attachmentsList" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+          <div id="uploadProgress" class="hidden mt-2 text-xs text-blue-600">Uploading...</div>
+        </div>
+
+      </div>
+
+      <div class="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-between items-center">
+        <button id="taskDeleteBtn" class="text-red-500 hover:text-red-700 text-sm font-medium hidden"
+          onclick="deleteTask()">Delete Task</button>
+        <div class="flex gap-3 ml-auto">
+          <button onclick="closeTaskModal()"
+            class="px-5 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm font-medium">Cancel</button>
+          <button id="taskSaveBtn" class="px-5 py-2 btn-gold rounded-lg shadow-md text-sm font-medium">Create
+            Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE PREVIEW -->
+  <div id="imgPreviewModal"
+    class="hidden fixed inset-0 bg-black/90 backdrop-blur items-center justify-center z-[1000] p-4">
+    <div class="relative w-full max-w-5xl">
+      <button onclick="closePreview()"
+        class="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300">✕</button>
+      <img id="imgPreview" src="" class="max-h-[85vh] w-full object-contain rounded-lg shadow-2xl" />
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // --- UI HANDLERS (Defined early for resilience) ---
+    window.toggleProfileMenu = () => document.getElementById('profileMenu').classList.toggle('show');
+    window.closeTaskModal = () => {
+      document.getElementById('taskModal').classList.add('hidden');
+      document.getElementById('taskModal').classList.remove('flex');
+    };
+    window.triggerUpload = () => {
+      console.log("Triggering upload...");
+      const el = document.getElementById('hiddenFileInput');
+      if (el) el.click();
+      else APP.toast.error("File input missing");
+    };
+
+    window.handleFileUpload = async (input) => {
+      if (!input.files || !input.files[0] || !editingTaskId) return;
+
+      const file = input.files[0];
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const note = document.getElementById('attNote')?.value;
+      if (note) fd.append('note', note);
+
+      // Acquire Location and Upload
+      if (navigator.geolocation) {
+        APP.toast.info("Acquiring photo location...");
+        navigator.geolocation.getCurrentPosition(
+          (pos) => performUpload(fd, pos.coords.latitude, pos.coords.longitude),
+          (err) => {
+            console.warn("Location denied", err);
+            performUpload(fd, null, null);
+          },
+          { timeout: 5000 }
+        );
+      } else {
+        performUpload(fd, null, null);
+      }
+
+      async function performUpload(formData, lat, lng) {
+        if (lat) {
+          formData.append('latitude', lat);
+          const locInp = document.getElementById('tLocation');
+          if (locInp && !locInp.value.trim()) {
+            locInp.value = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+          }
+        }
+        if (lng) formData.append('longitude', lng);
+
+        document.getElementById('uploadProgress').classList.remove('hidden');
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`/api/tasks/${editingTaskId}/attachments`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          if (!res.ok) throw new Error("Upload failed");
+          APP.toast.success("File uploaded");
+          await loadAttachments(editingTaskId);
+        } catch (e) {
+          console.error(e);
+          APP.toast.error("Upload failed: " + e.message);
+        } finally {
+          document.getElementById('uploadProgress').classList.add('hidden');
+          if (document.getElementById('attNote')) document.getElementById('attNote').value = '';
+          input.value = '';
+        }
+      }
+    };
+
+    // --- STATE & INIT ---
+    const urlParams = new URLSearchParams(location.search);
+    const projectId = urlParams.get('projectId');
+    let boardTasks = [];
+    let editingTaskId = null;
+    let teamMembers = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!projectId) {
+        APP.toast.error("No project specified");
+        const isAdmin = APP.auth.getRole() === 'ADMIN';
+        return setTimeout(() => window.location.href = isAdmin ? 'admin-dashboard.html' : 'user-dashboard.html', 1500);
+      }
+
+      await Promise.all([
+        loadProjectInfo(),
+        loadTeamMembers(),
+        reloadBoard()
+      ]);
+
+      // Init Profile
+      document.getElementById('navInitials').textContent = APP.auth.getInitials();
+      document.getElementById('navUserName').textContent = APP.auth.getName();
+
+      // Close dropdown on click outside
+      window.onclick = (e) => {
+        if (!e.target.closest('.relative')) {
+          document.getElementById('profileMenu')?.classList.remove('show');
+        }
+      };
+    });
+
+    async function loadProjectInfo() {
+      const isAdmin = APP.auth.getRole() === 'ADMIN';
+      const dashLink = document.getElementById('navDashboardLink');
+      if (dashLink) dashLink.href = isAdmin ? 'admin-dashboard.html' : 'user-dashboard.html';
+
+      try {
+        const p = await APP.api.get(`/projects/${projectId}`);
+        document.getElementById('projTitle').textContent = `Tasks: ${p.name}`;
+        if (p.location) {
+          const locEl = document.createElement('span');
+          locEl.className = 'text-xs text-gray-500 font-normal ml-2';
+          locEl.textContent = `📍 ${p.location}`;
+          document.getElementById('projTitle').appendChild(locEl);
+        }
+      } catch (e) { }
+    }
+
+    async function loadTeamMembers() {
+      try {
+        teamMembers = await APP.api.get('/users/staff');
+        const sel = document.getElementById('tAssignee');
+        sel.innerHTML = '<option value="">Unassigned</option>' +
+          teamMembers.map(m => `<option value="${m.id}">${APP.util.escapeHtml(m.name)}</option>`).join('');
+      } catch (e) { }
+    }
+
+    async function reloadBoard() {
+      try {
+        boardTasks = await APP.api.get(`/tasks?projectId=${projectId}`);
+        renderBoard();
+      } catch (e) { APP.toast.error("Failed to load tasks"); }
+    }
+
+    function renderBoard() {
+      ['BACKLOG', 'IN_PROGRESS', 'REVIEW', 'DONE'].forEach(status => {
+        const col = document.getElementById(`col-${status}`);
+        const tasks = boardTasks.filter(t => t.status === status);
+        document.getElementById(`count-${status}`).textContent = tasks.length;
+
+        col.innerHTML = tasks.map(t => createTaskCard(t)).join('');
+      });
+    }
+
+    function createTaskCard(t) {
+      const assignee = teamMembers.find(m => m.id === t.assigneeMemberId)?.name || 'Unassigned';
+      const priorityColor = {
+        'CRITICAL': 'text-red-600 bg-red-50 border-red-100',
+        'HIGH': 'text-orange-600 bg-orange-50 border-orange-100',
+        'MEDIUM': 'text-blue-600 bg-blue-50 border-blue-100',
+        'LOW': 'text-gray-500 bg-gray-50 border-gray-200'
+      }[t.priority] || 'text-gray-500 bg-gray-50 border-gray-200';
+
+      return `
+            <div class="task-card bg-white p-4 rounded-lg border hover:shadow-md transition-shadow group relative" 
+                 draggable="true" 
+                 ondragstart="onDrag(event, ${t.id})"
+                 onclick="openEditTask(${t.id})">
+                
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-xs px-2 py-0.5 rounded border ${priorityColor} font-medium tracking-wide">${t.priority}</span>
+                    ${t.dueDate ? `<span class="text-[10px] text-gray-400 font-mono">${t.dueDate}</span>` : ''}
+                </div>
+
+                <h4 class="font-medium text-gray-800 mb-2 line-clamp-2 leading-snug group-hover:text-[var(--dark)] transition-colors">${APP.util.escapeHtml(t.title)}</h4>
+                
+                <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600">
+                            ${assignee.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span class="truncate max-w-[80px]">${APP.util.escapeHtml(assignee)}</span>
+                    </div>
+                    ${t.location ? `<span class="flex items-center gap-0.5 text-[10px] bg-gray-50 px-1 py-0.5 rounded italic cursor-pointer hover:text-[var(--gold)]" onclick="event.stopPropagation(); APP.util.openInMaps('${t.location}')">📍 ${APP.util.escapeHtml(t.location)}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // --- DnD ---
+    let draggedId = null;
+    window.onDrag = (e, id) => {
+      draggedId = id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.target.classList.add('dragging');
+    };
+
+    window.allowDrop = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+
+    window.onDrop = async (e, newStatus) => {
+      e.preventDefault();
+      const card = document.querySelector('.task-card.dragging');
+      if (card) card.classList.remove('dragging');
+
+      if (!draggedId) return;
+      const task = boardTasks.find(t => t.id === draggedId);
+      if (task && task.status !== newStatus) {
+        // Optimistic update
+        const oldStatus = task.status;
+        task.status = newStatus;
+        renderBoard();
+
+        try {
+          await APP.api.put(`/tasks/${draggedId}`, { ...task, status: newStatus });
+        } catch (e) {
+          // Revert
+          task.status = oldStatus;
+          renderBoard();
+          APP.toast.error("Move failed");
+        }
+      }
+      draggedId = null;
+    };
+
+
+    // --- MODAL & CRUD ---
+    const modal = document.getElementById('taskModal');
+
+    window.openCreateTaskModal = (status = 'BACKLOG') => {
+      editingTaskId = null;
+      ['tTitle', 'tDesc', 'tDue', 'tLocation', 'attNote'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('tStatus').value = status;
+      document.getElementById('tPriority').value = 'MEDIUM';
+      document.getElementById('tAssignee').value = '';
+
+      document.getElementById('taskModalTitle').textContent = 'New Task';
+      document.getElementById('taskSaveBtn').textContent = 'Create Task';
+      document.getElementById('taskSaveBtn').onclick = saveTask;
+      document.getElementById('taskDeleteBtn').classList.add('hidden');
+      document.getElementById('attachmentsSection').classList.add('hidden');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    window.openEditTask = async (id) => {
+      const t = boardTasks.find(x => x.id === id);
+      if (!t) return;
+      editingTaskId = id;
+
+      document.getElementById('tTitle').value = t.title;
+      document.getElementById('tDesc').value = t.description;
+      document.getElementById('tStatus').value = t.status;
+      document.getElementById('tPriority').value = t.priority;
+      document.getElementById('tDue').value = t.dueDate || '';
+      document.getElementById('tLocation').value = t.location || '';
+      document.getElementById('attNote').value = '';
+      document.getElementById('tAssignee').value = t.assigneeMemberId || '';
+
+      document.getElementById('taskModalTitle').textContent = 'Edit Task';
+      document.getElementById('taskSaveBtn').textContent = 'Save Changes';
+      document.getElementById('taskSaveBtn').onclick = saveTask;
+      document.getElementById('taskDeleteBtn').classList.remove('hidden');
+      document.getElementById('attachmentsSection').classList.remove('hidden');
+
+      loadAttachments(id); // Load attachments for this task
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+
+    async function saveTask() {
+      const pidStr = projectId;
+      if (!pidStr) return APP.toast.error("Project ID missing");
+
+      const assigneeVal = document.getElementById('tAssignee').value;
+      const payload = {
+        projectId: parseInt(pidStr),
+        title: document.getElementById('tTitle').value,
+        description: document.getElementById('tDesc').value,
+        status: document.getElementById('tStatus').value,
+        priority: document.getElementById('tPriority').value,
+        dueDate: document.getElementById('tDue').value || null,
+        location: document.getElementById('tLocation').value || null,
+        assigneeMemberId: assigneeVal ? parseInt(assigneeVal) : null
+      };
+
+      try {
+        if (editingTaskId) {
+          await APP.api.put(`/tasks/${editingTaskId}`, payload);
+          APP.toast.success("Task updated");
+        } else {
+          await APP.api.post(`/tasks/project/${pidStr}`, payload);
+          APP.toast.success("Task created");
+        }
+        closeTaskModal();
+        reloadBoard();
+      } catch (e) {
+        console.error(e);
+        APP.toast.error("Operation failed: " + (e.message || "Unknown error"));
+      }
+    }
+
+    window.deleteTask = async () => {
+      if (!confirm("Delete this task?")) return;
+      try {
+        await APP.api.delete(`/tasks/${editingTaskId}`);
+        APP.toast.success("Deleted");
+        closeTaskModal();
+        reloadBoard();
+      } catch (e) { APP.toast.error("Delete failed"); }
+    };
+
+    // --- ATTACHMENTS ---
+    async function loadAttachments(taskId) {
+      const list = document.getElementById('attachmentsList');
+      list.innerHTML = '<div class="text-xs text-gray-400">Loading...</div>';
+      try {
+        const atts = await APP.api.get(`/tasks/${taskId}/attachments`);
+        list.innerHTML = atts.map(a => {
+          const mime = (a.mimeType || '').toLowerCase();
+          const fname = (a.filename || a.fileName || '').toLowerCase();
+          const isImg = mime.startsWith('image/') || fname.endsWith('.jpg') || fname.endsWith('.jpeg') || fname.endsWith('.png') || fname.endsWith('.webp') || fname.endsWith('.gif');
+          return `
+          <div class="relative group aspect-square bg-white shadow-sm border rounded-xl overflow-hidden flex items-center justify-center transition-all hover:shadow-md">
+             ${isImg
+              ? `<img src="${a.url}?t=${Date.now()}" class="w-full h-full object-cover cursor-zoom-in" onclick="openPreview('${a.url}?t=${Date.now()}')" onerror="this.src='https://placehold.co/100x100?text=Error'"/>`
+              : `<a href="${a.url}" target="_blank" download class="flex flex-col items-center justify-center text-gray-500 hover:text-[var(--gold)] p-3 text-center h-full w-full">
+                    <span class="text-3xl mb-1">📄</span>
+                    <span class="text-[10px] font-medium break-all line-clamp-2 px-1">${APP.util.escapeHtml(a.filename || a.fileName || 'File')}</span>
+                  </a>`
+            }
+             <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a href="${a.url}" download class="bg-white/90 text-gray-600 rounded-full w-6 h-6 shadow-sm flex items-center justify-center hover:bg-[var(--gold)] hover:text-white transition-colors" title="Download">↓</a>
+                <button onclick="deleteAttachment(${a.id})" class="bg-white/90 text-red-600 rounded-full w-6 h-6 shadow-sm flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Delete">×</button>
+             </div>
+             <div class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-[9px] p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                ${a.note ? `<div class="font-medium truncate">${APP.util.escapeHtml(a.note)}</div>` : ''}
+                ${(a.latitude && a.longitude) ? `<div class="text-[8px] text-gray-300">📍 ${a.latitude.toFixed(4)}, ${a.longitude.toFixed(4)}</div>` : ''}
+             </div>
+          </div>
+        `;
+        }).join('') || '<div class="col-span-4 text-xs text-gray-400 italic">No attachments</div>';
+      } catch (e) { list.innerHTML = ''; }
+    }
+
+
+
+    window.deleteAttachment = async (id) => {
+      if (!confirm("Delete attachment?")) return;
+      try {
+        await APP.api.delete(`/task-attachments/${id}`);
+        loadAttachments(editingTaskId);
+      } catch (e) { APP.toast.error("Failed"); }
+    };
+
+    // --- PREVIEW ---
+    window.openPreview = (src) => {
+      document.getElementById('imgPreview').src = src;
+      document.getElementById('imgPreviewModal').classList.remove('hidden');
+      document.getElementById('imgPreviewModal').classList.add('flex');
+    };
+    window.closePreview = () => {
+      document.getElementById('imgPreviewModal').classList.add('hidden');
+      document.getElementById('imgPreviewModal').classList.remove('flex');
+    };
+
+  </script>
+</body>
+
+</html>

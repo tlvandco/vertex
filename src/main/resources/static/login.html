@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERTEX - Login | Enterprise Project Management Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #8B7355;
+            --color-secondary: #D4AF37;
+            --color-dark: #2C2416;
+            --color-light: #F5F3EF;
+            --color-white: #FFFFFF;
+            --color-accent: #A67C52;
+            --color-error: #E63946;
+            --color-success: #06A77D;
+            --font-primary: 'Playfair Display', serif;
+            --font-secondary: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-secondary);
+            color: var(--color-dark);
+            line-height: 1.6;
+            background: linear-gradient(135deg, #F5F3EF 0%, #E8E4DE 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--color-white);
+        }
+
+        .login-left {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: var(--color-white);
+            padding: 4rem 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .login-left h1 {
+            font-family: var(--font-primary);
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .login-left p {
+            font-size: 1rem;
+            opacity: 0.95;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .brand-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-primary);
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .login-right {
+            flex: 1;
+            padding: 4rem 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-right h2 {
+            font-family: var(--font-primary);
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .login-right .subtitle {
+            color: var(--color-accent);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--color-dark);
+            font-weight: 500;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #E0D9CE;
+            border-radius: 6px;
+            font-family: var(--font-secondary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            color: var(--color-dark);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .error-message {
+            color: var(--color-error);
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
+            display: none;
+        }
+
+        .form-group input.error {
+            border-color: var(--color-error);
+        }
+
+        .form-group input.error ~ .error-message {
+            display: block;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .remember-forgot a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .remember-forgot a:hover {
+            color: var(--color-accent);
+            text-decoration: underline;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: var(--color-white);
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 115, 85, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .test-credentials {
+            background: #FFF9E6;
+            border-left: 4px solid var(--color-secondary);
+            padding: 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: var(--color-dark);
+            margin-top: 2rem;
+        }
+
+        .test-credentials strong {
+            color: var(--color-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .test-cred-item {
+            margin-bottom: 0.3rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .success-message {
+            background: #E8F5E9;
+            border-left: 4px solid var(--color-success);
+            color: #1B5E20;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .error-box {
+            background: #FFEBEE;
+            border-left: 4px solid var(--color-error);
+            color: #B71C1C;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column;
+                max-width: 100%;
+            }
+
+            .login-left {
+                padding: 2rem;
+                min-height: 250px;
+            }
+
+            .login-left h1 {
+                font-size: 1.8rem;
+            }
+
+            .login-right {
+                padding: 2rem;
+            }
+
+            .login-right h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+</head>
+
+<body>
+    <div class="login-container">
+        <!-- Left Side - Branding -->
+        <div class="login-left">
+            <div class="brand-icon">✨</div>
+            <h1>VERTEX</h1>
+            <p>Enterprise Project Management & Interior Design Portal</p>
+            <p style="font-size: 0.9rem; opacity: 0.85;">Streamline your design projects with advanced budget tracking, expense management, and collaborative tools.</p>
+        </div>
+
+        <!-- Right Side - Login Form -->
+        <div class="login-right">
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Sign in to your account</p>
+
+            <div class="success-message" id="successMessage"></div>
+            <div class="error-box" id="errorBox"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="admin@vertex.com" required>
+                    <span class="error-message">Please enter a valid email</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <span class="error-message">Password is required</span>
+                </div>
+
+                <div class="remember-forgot">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="remember" style="width: auto; cursor: pointer;">
+                        Remember me
+                    </label>
+                    <a href="#forgot">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
+
+            <div class="divider">— Test Credentials —</div>
+
+            <div class="test-credentials">
+                <strong>Admin Account:</strong>
+                <div class="test-cred-item">📧 admin@vertex.com</div>
+                <div class="test-cred-item">🔐 admin@123</div>
+
+                <strong style="margin-top: 0.8rem;">Project Manager:</strong>
+                <div class="test-cred-item">📧 pm@vertex.com</div>
+                <div class="test-cred-item">🔐 pm@123</div>
+
+                <strong style="margin-top: 0.8rem;">Designer:</strong>
+                <div class="test-cred-item">📧 designer@vertex.com</div>
+                <div class="test-cred-item">🔐 designer@123</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const successMessage = document.getElementById('successMessage');
+        const errorBox = document.getElementById('errorBox');
+
+        // Initialize admin and test users on page load
+        window.addEventListener('load', async () => {
+            try {
+                // Initialize admin
+                await fetch('/api/v2/auth/init-admin', { method: 'POST' });
+                // Initialize test users
+                await fetch('/api/v2/auth/init-test-users', { method: 'POST' });
+                console.log('Credentials initialized');
+            } catch (error) {
+                console.error('Error initializing credentials:', error);
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Validation
+            if (!email || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            const originalText = loginBtn.textContent;
+            loginBtn.innerHTML = '<span class="loading"></span> Signing in...';
+
+            try {
+                const response = await fetch('/api/v2/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store token if available
+                    if (data.data && data.data.token) {
+                        localStorage.setItem('token', data.data.token);
+                    }
+                    localStorage.setItem('user', JSON.stringify(data.data));
+                    
+                    showSuccess('Login successful! Redirecting...');
+                    setTimeout(() => {
+                        // Redirect based on user role
+                        const userRole = data.data.role;
+                        switch(userRole) {
+                            case 'ADMIN':
+                                window.location.href = '/admin-dashboard.html';
+                                break;
+                            case 'PROJECT_MANAGER':
+                                window.location.href = '/pm-dashboard.html';
+                                break;
+                            case 'DESIGNER':
+                                window.location.href = '/designer-dashboard.html';
+                                break;
+                            case 'CLIENT':
+                                window.location.href = '/client-dashboard.html';
+                                break;
+                            default:
+                                window.location.href = '/index.html';
+                        }
+                    }, 1500);
+                } else {
+                    showError(data.message || 'Invalid email or password');
+                }
+            } catch (error) {
+                showError('Connection error. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
+            }
+        });
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorBox.style.display = 'none';
+        }
+
+        // Clear error message on input
+        document.getElementById('email').addEventListener('focus', () => {
+            errorBox.style.display = 'none';
+        });
+        document.getElementById('password').addEventListener('focus', () => {
+            errorBox.style.display = 'none';
+        });
+    </script>
+</body>
+
+</html>

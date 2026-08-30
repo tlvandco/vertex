@@ -1,0 +1,1701 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>User Dashboard — Anantha Design Group</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            safelist: [
+                'translate-x-0', 'translate-x-full', 'hidden', 'flex'
+            ]
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Profile Dropdown */
+        .profile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            width: 200px;
+            background: white;
+            border: 1px border-gray-100;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 50;
+            padding: 0.5rem;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        /* Drawer Base - Widened for Telegram-style */
+        .chat-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 800px;
+            height: 100%;
+            background: white;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1100;
+            display: flex;
+        }
+
+        .drawer-open {
+            transform: translateX(0) !important;
+        }
+
+        /* Telegram-style Sidebar */
+        .chat-sidebar {
+            width: 300px;
+            border-right: 1px solid #edf2f7;
+            display: flex;
+            flex-direction: column;
+            background: #fcfcfc;
+        }
+
+        .chat-list-item {
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f7fafc;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-list-item:hover {
+            background: #f7fafc;
+        }
+
+        .chat-list-item.active {
+            background: #fff8eb;
+            border-left: 4px solid var(--gold);
+        }
+
+        .chat-list-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--gold);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .chat-list-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-list-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-list-last {
+            font-size: 0.75rem;
+            color: #718096;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Chat Area */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            position: relative;
+        }
+
+        .chat-empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0;
+            background: #f8f9fa;
+        }
+
+        /* Slack-like Chat UI */
+        .chat-bubble {
+            padding: 0.6rem 0.9rem;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-bubble-mine {
+            background: var(--gold);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+            margin-left: auto;
+        }
+
+        .chat-bubble-theirs {
+            background: #f8f9fa;
+            color: #2d3748;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+            border: 1px solid #edf2f7;
+        }
+
+        .chat-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: #4a5568;
+            flex-shrink: 0;
+        }
+
+        .chat-msg-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 2px;
+        }
+
+        .chat-msg-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-sender-name {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-timestamp {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: #a0aec0;
+        }
+
+        .chat-input-area {
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-area:focus-within {
+            border-color: var(--gold);
+        }
+
+        .unread-badge {
+            background: #ff3b30;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .reply-snippet {
+            background: rgba(0, 0, 0, 0.05);
+            border-left: 3px solid var(--gold);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 0.75rem;
+            color: #718096;
+            max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .message-action-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: #a0aec0;
+            cursor: pointer;
+        }
+
+        .chat-bubble:hover .message-action-btn {
+            opacity: 1;
+        }
+
+        .message-action-btn:hover {
+            color: var(--gold);
+        }
+
+        .deleted-text {
+            font-style: italic;
+            color: #a0aec0;
+        }
+
+        #replyPreview {
+            display: none;
+            background: white;
+            border-left: 4px solid var(--gold);
+            padding: 8px 12px;
+            margin: 0 12px 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Mention Popup */
+        .mention-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .mention-item:last-child {
+            border-bottom: none;
+        }
+
+        .mention-item:hover {
+            background: #f3f4f6;
+        }
+
+        .mention-item .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--gold);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .mention-highlight {
+            color: var(--gold);
+            font-weight: bold;
+        }
+    </style>
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"
+        preload="auto"></audio>
+</head>
+
+<body class="bg-[var(--muted)] min-h-screen">
+
+    <!-- NAVBAR -->
+    <nav class="bg-white/80 backdrop-blur-md drop-shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="brand text-2xl font-semibold">Anantha Design Group</div>
+                <div id="userRoleBadge" class="text-sm px-2 py-1 bg-amber-100 text-amber-800 rounded-full font-medium">
+                    User</div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleChat()"
+                    class="p-2 text-gray-500 hover:text-[var(--gold)] transition-colors relative"
+                    title="Open Project Chat">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                    </svg>
+                </button>
+                <!-- Profile Dropdown -->
+                <div class="relative">
+                    <button onclick="toggleProfileMenu()"
+                        class="w-10 h-10 rounded-full bg-[var(--gold)] text-white flex items-center justify-center font-bold shadow-sm hover:opacity-90 transition-all border-2 border-white ring-1 ring-gray-100">
+                        <span id="navInitials">AD</span>
+                    </button>
+                    <div id="profileMenu" class="profile-dropdown text-left">
+                        <div class="px-4 py-3 border-b mb-1">
+                            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Account</p>
+                            <p id="navUserName" class="text-sm font-bold text-gray-800 truncate">User Name</p>
+                        </div>
+                        <button onclick="togglePwModal()"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">🔐
+                            Password</button>
+                        <button onclick="APP.auth.logout()"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-1">🚪
+                            Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+
+        <!-- OVERVIEW -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 card p-6">
+                <h3 class="text-lg font-semibold mb-4">My Overview</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+                        <div class="text-sm text-gray-500">My Projects</div>
+                        <div id="statProjects" class="text-2xl font-bold text-[var(--gold)]">0</div>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+                        <div class="text-sm text-gray-500">Active Tasks</div>
+                        <div id="statActiveTasks" class="text-2xl font-bold text-gray-700">0</div>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+                        <div class="text-sm text-gray-500">Due Soon</div>
+                        <div id="statDueSoon" class="text-2xl font-bold text-gray-700">0</div>
+                    </div>
+                    <div class="bg-white/50 p-4 rounded-xl border border-white/50">
+                        <div class="text-sm text-gray-500">Attachments</div>
+                        <div id="statAttachments" class="text-2xl font-bold text-gray-700">0</div>
+                    </div>
+                </div>
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-white/50 rounded-xl border border-white/50">
+                        <h4 class="font-medium mb-3">Recent Activity</h4>
+                        <ul id="activityList" class="space-y-2 text-sm text-gray-700"></ul>
+                    </div>
+                    <div class="p-4 bg-white/50 rounded-xl border border-white/50">
+                        <h4 class="font-medium mb-3">My Milestones</h4>
+                        <canvas id="milestoneChart" height="180"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="card p-6 h-fit sticky top-24">
+                <h4 class="font-medium mb-4 text-lg">Quick Links</h4>
+                <div class="flex flex-col gap-3">
+                    <a href="#projects"
+                        class="w-full px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 flex justify-between group">
+                        <span>Projects</span> <span class="text-gray-400 group-hover:text-[var(--gold)]">↓</span>
+                    </a>
+                    <a href="#myTasks"
+                        class="w-full px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 flex justify-between group">
+                        <span>My Tasks</span> <span class="text-gray-400 group-hover:text-[var(--gold)]">↓</span>
+                    </a>
+                    <button onclick="refresh()"
+                        class="w-full text-left px-4 py-3 rounded-lg bg-white border hover:bg-gray-50 flex justify-between group">
+                        <span>Refresh</span> <span class="text-gray-400 group-hover:text-[var(--gold)]">↻</span>
+                    </button>
+                    <button onclick="toggleChat()"
+                        class="w-full text-left px-4 py-3 rounded-lg bg-[var(--gold)] text-white hover:opacity-90 flex justify-between group transition-colors">
+                        <span>Project Chat</span> <span class="text-white/80">💬</span>
+                    </button>
+                </div>
+            </aside>
+        </section>
+
+        <!-- PROJECTS LIST -->
+        <section id="projects" class="card p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-semibold text-lg">My Projects</h3>
+                <div class="flex items-center gap-3">
+                    <input id="searchInput" placeholder="Search..." oninput="loadProjects()"
+                        class="px-4 py-2 border rounded-lg text-sm bg-white/50 focus:bg-white" />
+                    <button onclick="loadProjects()" class="px-4 py-2 rounded-lg btn-secondary text-sm">Search</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg border">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-left text-gray-600 font-medium">
+                        <tr>
+                            <th class="px-6 py-3">Name</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3">Progress</th>
+                            <th class="px-6 py-3">Next Milestone</th>
+                            <th class="px-6 py-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectsTbody" class="divide-y bg-white"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- MY TASKS -->
+        <section id="myTasks" class="card p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-semibold text-lg">My Tasks</h3>
+                <p id="myTasksHint" class="text-sm text-gray-500"></p>
+            </div>
+            <div id="myTasksList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+    </main>
+
+    <!-- DRAWER -->
+    <div id="drawer" class="drawer-base p-0 flex flex-col shadow-2xl">
+        <div class="p-6 border-b bg-gray-50 flex items-center justify-between">
+            <div>
+                <h3 id="drawerTitle" class="text-xl font-semibold brand">Project</h3>
+                <h3 id="drawerSub" class="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2"></h3>
+            </div>
+            <button onclick="closeDrawer()"
+                class="px-3 py-1 bg-white border rounded text-sm hover:bg-gray-100">Close</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 space-y-8">
+            <div>
+                <a id="drawerBoardLink" href="#"
+                    class="block w-full text-center py-2 mb-6 border rounded-lg hover:border-[var(--gold)] hover:text-[var(--gold)] transition-colors text-sm font-medium">
+                    Open Kanban Board
+                </a>
+            </div>
+
+            <!-- Team -->
+            <section>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Project Team</h4>
+                <div id="teamList" class="space-y-1"></div>
+            </section>
+
+            <!-- Milestones -->
+            <section>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Milestones</h4>
+                <div id="achievedMilestones" class="space-y-2 mb-4"></div>
+                <div id="pendingMilestones" class="space-y-2"></div>
+            </section>
+
+            <!-- Tasks -->
+            <section>
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tasks</h4>
+                </div>
+                <div id="taskList" class="space-y-3"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- TELEGRAM-STYLE CHAT DRAWER -->
+    <div id="chatDrawer" class="chat-drawer">
+        <!-- Sidebar: Project List -->
+        <div class="chat-sidebar">
+            <div class="p-6 border-b flex items-center justify-between bg-white relative">
+                <div class="flex items-center justify-between w-full">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        Channels
+                        <button onclick="openNewChannelModal()"
+                            class="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors shadow-sm"
+                            title="New Group Channel">+</button>
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleChatSettings()" 
+                            class="p-1.5 text-xs font-bold bg-gray-50 hover:bg-white border rounded-lg transition-all shadow-sm flex items-center gap-1" title="Chat Settings">
+                            <span>⚙️</span> <span class="hidden sm:inline">Settings</span>
+                        </button>
+                        <button onclick="toggleChat()" class="p-1 hover:bg-gray-100 rounded-lg md:hidden">✕</button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-b">
+                <div class="relative">
+                    <input type="text" id="chatSearch" placeholder="Search channels..."
+                        class="w-full p-2 pl-8 bg-gray-100 border-none rounded-lg text-sm focus:ring-1 focus:ring-[var(--gold)]"
+                        oninput="filterChatList()">
+                    <svg class="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round"
+                            stroke-linejoin="round" stroke-width="2" />
+                    </svg>
+                </div>
+            </div>
+            <div id="chatProjectList" class="flex-1 overflow-y-auto">
+                <!-- Project items will be injected here -->
+            </div>
+            <!-- Chat Settings Area (Collapsible) -->
+            <div id="chatSettingsPanel" class="hidden p-4 border-t bg-gray-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Preferences</h4>
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Notification Sounds</span>
+                        <input type="checkbox" id="prefChatSounds" checked class="w-4 h-4 rounded text-[var(--gold)] focus:ring-[var(--gold)]" onchange="saveChatPrefs()">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Auto-Scroll to New</span>
+                        <input type="checkbox" id="prefChatScroll" checked class="w-4 h-4 rounded text-[var(--gold)] focus:ring-[var(--gold)]" onchange="saveChatPrefs()">
+                    </label>
+                    <button onclick="clearChatHistoryLocal()" class="w-full mt-2 py-1.5 text-[10px] bg-white border border-red-100 text-red-500 hover:bg-red-50 rounded-lg transition-colors font-bold">Clear Local Cache</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Content -->
+        <div class="chat-main" id="chatMainArea">
+            <!-- Chat Header -->
+            <div class="p-4 border-b flex justify-between items-center bg-white shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <div id="activeChatAvatar" class="chat-list-avatar w-10 h-10 hidden"></div>
+                    <div>
+                        <h3 id="chatTitle" class="font-bold text-base leading-tight">Select a Channel</h3>
+                        <div id="chatStatusInfo" class="flex items-center gap-1.5 mt-0.5 hidden">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                            <p id="chatSub" class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Online
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="toggleChat()"
+                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-xl hidden md:block">✕</button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[#f0f2f5] relative">
+                <div class="text-center text-gray-400 text-xs py-10 italic">
+                    Select a channel from the sidebar to start messaging.
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div id="chatInputSection" class="p-3 bg-[#f0f2f5] hidden">
+                <!-- Reply Preview -->
+                <div id="replyPreview">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-bold text-[var(--gold)] uppercase tracking-wider">Replying to
+                                message</p>
+                            <p id="replyPreviewText" class="text-xs text-gray-600 truncate"></p>
+                        </div>
+                        <button onclick="cancelReply()" class="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                </div>
+
+                <div
+                    class="chat-input-area flex items-end gap-2 bg-white rounded-xl p-2 shadow-sm border border-gray-100 relative">
+                    <div id="mentionPopup"
+                        class="absolute bottom-full left-0 w-full bg-white border shadow-lg rounded-t-lg hidden z-50 overflow-y-auto max-h-40">
+                    </div>
+                    <button onclick="document.getElementById('chatFile').click()"
+                        class="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-[var(--gold)] flex-shrink-0"
+                        title="Attach file">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                    </button>
+
+                    <div class="flex-1 flex flex-col justify-center">
+                        <div id="chatFileName"
+                            class="text-[10px] text-[var(--gold)] font-bold truncate max-w-[200px] mb-1 px-2"></div>
+                        <textarea id="chatInput" placeholder="Message..."
+                            class="w-full bg-transparent text-sm outline-none resize-none px-2 py-1 max-h-32" rows="1"
+                            oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; handleMention(event)"
+                            onkeypress="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendChatMessage(); }"></textarea>
+                    </div>
+
+                    <button onclick="sendChatMessage()"
+                        class="w-10 h-10 rounded-full bg-[var(--gold)] text-white flex items-center justify-center hover:bg-[#aa8800] transition-colors shadow-sm flex-shrink-0">
+                        <svg class="w-5 h-5 translate-x-[-1px] translate-y-[1px]" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </div>
+                <input type="file" id="chatFile" class="hidden" onchange="uploadChatFile()" />
+            </div>
+        </div>
+    </div>
+
+    <!-- IMAGE PREVIEW -->
+    <div id="imgPreviewModal"
+        class="hidden fixed inset-0 bg-black/90 backdrop-blur items-center justify-center z-[10000] p-4">
+        <div class="relative w-full max-w-5xl">
+            <button onclick="closePreview()"
+                class="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300">✕</button>
+            <img id="imgPreview" src="" class="max-h-[85vh] w-full object-contain rounded-lg shadow-2xl" />
+            <div id="imgPreviewCaption" class="text-center text-white/80 mt-2 font-medium"></div>
+        </div>
+    </div>
+
+    <!-- TASK MODAL (Ported from tasks.html) -->
+    <div id="taskModal"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-[500] p-4">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 id="taskModalTitle" class="text-xl font-bold font-serif">Edit Task</h3>
+                <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+            </div>
+
+            <div class="p-6 space-y-6 flex-1">
+                <!-- Title & Status -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input id="tTitle"
+                            class="w-full p-2 border rounded focus:ring-2 focus:ring-[var(--gold)] outline-none"
+                            placeholder="Task title..." />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="tStatus" class="w-full p-2 border rounded bg-gray-50">
+                            <option value="BACKLOG">Backlog / To Do</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="REVIEW">Review</option>
+                            <option value="DONE">Done</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="relative flex items-center gap-2">
+                    <input id="tLocation"
+                        class="flex-1 text-sm p-3 bg-gray-50 rounded-xl border border-gray-100 focus:border-[var(--gold)] outline-none transition-colors pr-10 cursor-alias"
+                        placeholder="📍 Task Location (e.g. Living Room, Site A)"
+                        onclick="if(this.value && this.value.includes('GPS:')) APP.util.openInMaps(this.value)" />
+                    <button onclick="useCurrentLocation()" type="button"
+                        class="px-4 py-2 border rounded-xl text-xs font-bold bg-white hover:bg-gray-50 transition-colors">📍
+                        Get GPS</button>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="tDesc" rows="3"
+                        class="w-full p-2 border rounded focus:ring-2 focus:ring-[var(--gold)] outline-none"
+                        placeholder="Details..."></textarea>
+                </div>
+
+                <!-- Details Row -->
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                        <select id="tPriority" class="w-full p-2 border rounded bg-white">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                        <input id="tDue" type="date" class="w-full p-2 border rounded" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                        <select id="tAssignee" class="w-full p-2 border rounded bg-gray-50 text-sm">
+                            <option value="">Unassigned</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Attachments Section -->
+                <div id="attachmentsSection" class="border-t pt-4">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-800 mb-2">Attachments / Proofs</label>
+                        <div class="flex gap-2">
+                            <input id="attNote" class="flex-1 text-xs p-2 border rounded bg-gray-50"
+                                placeholder="Optional photo note..." />
+                            <button onclick="triggerUpload()"
+                                class="px-3 py-1.5 bg-[var(--gold)] text-white text-xs font-medium rounded hover:opacity-90">+
+                                Add File</button>
+                        </div>
+                        <input type="file" id="hiddenFileInput" class="hidden" onchange="handleFileUpload(this)" />
+                    </div>
+
+                    <!-- Progress -->
+                    <div id="uploadProgress" class="hidden w-full bg-gray-100 rounded-full h-1.5 mb-3 overflow-hidden">
+                        <div class="bg-[var(--gold)] h-full w-1/3 animate-pulse"></div>
+                    </div>
+
+                    <div id="attachmentsList" class="grid grid-cols-4 gap-3">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t bg-gray-50 flex justify-between items-center sticky bottom-0">
+                <button id="taskDeleteBtn" onclick="deleteTask()"
+                    class="text-red-500 hover:text-red-700 text-sm font-medium hidden">Delete Task</button>
+                <div class="flex gap-3 ml-auto">
+                    <button onclick="closeTaskModal()"
+                        class="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded">Cancel</button>
+                    <button id="taskSaveBtn" onclick="saveTask()"
+                        class="px-6 py-2 btn-gold rounded shadow-lg transform hover:-translate-y-0.5 transition-all">Save
+                        Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP LOGIC -->
+    <script src="js/app.js"></script>
+    <script>
+        // --- UI HANDLERS (Defined early for resilience) ---
+        window.toggleProfileMenu = () => document.getElementById('profileMenu')?.classList.toggle('show');
+        window.closeTaskModal = () => {
+            const m = document.getElementById('taskModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        };
+        window.triggerUpload = () => {
+            const el = document.getElementById('hiddenFileInput');
+            if (el) el.click();
+        };
+
+        window.handleFileUpload = async (input) => {
+            if (!input.files || !input.files[0] || !editingTaskId) return;
+
+            const file = input.files[0];
+            const fd = new FormData();
+            fd.append('file', file);
+
+            const note = document.getElementById('attNote')?.value;
+            if (note) fd.append('note', note);
+
+            if (navigator.geolocation) {
+                APP.toast.info("Acquiring photo location...");
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => performUpload(fd, pos.coords.latitude, pos.coords.longitude),
+                    (err) => {
+                        console.warn("Location denied", err);
+                        performUpload(fd, null, null);
+                    },
+                    { timeout: 5000 }
+                );
+            } else {
+                performUpload(fd, null, null);
+            }
+
+            async function performUpload(formData, lat, lng) {
+                if (lat) {
+                    formData.append('latitude', lat);
+                    const locInp = document.getElementById('tLocation');
+                    if (locInp && !locInp.value.trim()) {
+                        locInp.value = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    }
+                }
+                if (lng) formData.append('longitude', lng);
+
+                document.getElementById('uploadProgress').classList.remove('hidden');
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`/api/tasks/${editingTaskId}/attachments`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+                    if (!res.ok) throw new Error("Upload failed");
+                    APP.toast.success("File uploaded");
+                    await loadAttachments(editingTaskId);
+                } catch (e) {
+                    console.error(e);
+                    APP.toast.error("Upload failed: " + e.message);
+                } finally {
+                    document.getElementById('uploadProgress').classList.add('hidden');
+                    if (document.getElementById('attNote')) document.getElementById('attNote').value = '';
+                    input.value = '';
+                }
+            }
+        };
+
+        // --- STATE & INIT ---
+        let myProjects = [];
+        let editingTaskId = null;
+        let activeProjectId = null;
+        let chatInterval = null;
+        let chatFile = null;
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!APP.auth.isAuthenticated()) window.location.href = 'login.html';
+            document.getElementById('userRoleBadge').textContent = APP.auth.getRole() || 'User';
+            initUserDashboard();
+        });
+
+        async function initUserDashboard() {
+            // Init Profile UI
+            document.getElementById('navInitials').textContent = APP.auth.getInitials();
+            document.getElementById('navUserName').textContent = APP.auth.getName();
+
+            // Outside click to close profile menu
+            window.onclick = (e) => {
+                if (!e.target.closest('.relative')) {
+                    document.getElementById('profileMenu')?.classList.remove('show');
+                }
+            };
+
+            await refresh();
+            loadChatPrefs();
+        }
+
+        async function refresh() {
+            await loadProjects();
+            await loadOverviewStats();
+            await loadMyTasks();
+            try { await loadStaffForDropdown(); } catch (e) { }
+            APP.toast.success("Dashboard data updated");
+        }
+
+        async function loadStaffForDropdown() {
+            const staff = await APP.api.get('/users/staff');
+            const sel = document.getElementById('tAssignee');
+            sel.innerHTML = '<option value="">Unassigned</option>' +
+                staff.map(m => `<option value="${m.id}">${APP.util.escapeHtml(m.name)}</option>`).join('');
+        }
+
+        // --- PROJECTS ---
+        async function loadProjects() {
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+            try {
+                myProjects = await APP.api.get('/projects?scope=my');
+                let display = myProjects;
+                if (q) display = display.filter(p => p.name.toLowerCase().includes(q));
+                renderProjectsTable(display);
+                document.getElementById('statProjects').innerText = myProjects.length;
+            } catch (e) {
+                try {
+                    const all = await APP.api.get('/projects');
+                    myProjects = all;
+                    renderProjectsTable(myProjects);
+                    document.getElementById('statProjects').innerText = myProjects.length;
+                } catch (err) {
+                    APP.toast.error("Failed to load projects");
+                }
+            }
+        }
+
+        async function renderProjectsTable(projects) {
+            const tbody = document.getElementById('projectsTbody');
+            const rows = await Promise.all(projects.map(async p => {
+                let nextMilestone = '-';
+                try {
+                    const ms = await APP.api.get(`/milestones/project/${p.id}`);
+                    const upcoming = ms.filter(m => m.dueDate && new Date(m.dueDate) >= new Date())
+                        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+                    if (upcoming) nextMilestone = `${upcoming.name} (${upcoming.dueDate})`;
+                } catch (e) { }
+
+                return `
+    <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-6 py-4 font-medium transition-colors hover:text-[var(--gold)] cursor-pointer" onclick="APP.util.openInMaps('${p.location || ''}')">
+            ${APP.util.escapeHtml(p.name)}
+            <p class="text-[10px] text-gray-400 font-normal mt-0.5">📍 ${APP.util.escapeHtml(p.location || 'No location')}</p>
+        </td>
+        <td class="px-6 py-4"><span class="px-2 py-1 bg-gray-100 text-xs rounded">${p.status}</span></td>
+        <td class="px-6 py-4 w-40">${APP.util.progressBar(p.progress || 0)}</td>
+        <td class="px-6 py-4 text-sm text-gray-500">${APP.util.escapeHtml(nextMilestone)}</td>
+        <td class="px-6 py-4 text-right flex justify-end gap-2">
+            <button onclick="openDrawer(${p.id}, '${APP.util.escapeHtml(p.name)}')" class="px-3 py-1.5 border rounded text-xs font-medium hover:bg-white hover:border-[var(--gold)]">View</button>
+            <a href="tasks.html?projectId=${p.id}" class="px-3 py-1.5 border rounded text-xs font-medium bg-[var(--gold)] text-white hover:opacity-90">Board</a>
+        </td>
+    </tr>
+    `;
+            }));
+
+            tbody.innerHTML = rows.join('') || '<tr><td colspan="5" class="p-6 text-center text-gray-500">No available projects</td></tr>';
+        }
+
+        // --- OVERVIEW STATS ---
+        async function loadOverviewStats() {
+            document.getElementById('statActiveTasks').innerHTML = '--';
+            document.getElementById('statDueSoon').innerHTML = '--';
+            document.getElementById('statAttachments').innerHTML = '--';
+        }
+
+        // --- MY TASKS ---
+        async function loadMyTasks() {
+            const list = document.getElementById('myTasksList');
+            list.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-4">Loading tasks...</div>';
+
+            let allTasks = [];
+            try {
+                for (const p of myProjects) {
+                    const tasks = await APP.api.get(`/tasks?projectId=${p.id}`);
+                    allTasks.push(...tasks);
+                }
+                document.getElementById('myTasksHint').innerText = allTasks.length + ' tasks visible';
+
+                list.innerHTML = allTasks.map(t => `
+    <div class="p-4 bg-white border rounded-xl hover:shadow-md transition-shadow relative group">
+        <div class="flex justify-between items-start mb-2">
+            <span class="font-medium text-sm line-clamp-1">${APP.util.escapeHtml(t.title)}</span>
+            <div class="flex items-center gap-2">
+                <button onclick="discussItem('TASK', ${t.id}, '${APP.util.escapeHtml(t.title)}')" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[var(--gold)]" title="Discuss in Chat">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                </button>
+                <span class="text-[10px] px-2 py-0.5 bg-gray-100 rounded uppercase tracking-wide">${t.status}</span>
+            </div>
+        </div>
+        <div class="text-xs text-gray-500 mb-2">${APP.util.formatDate(t.dueDate)}</div>
+        ${t.description ? `<p class="text-xs text-gray-400 line-clamp-2">${APP.util.escapeHtml(t.description)}</p>` : ''}
+        <button onclick="openEditTask(${t.id})" class="absolute top-2 right-12 opacity-0 group-hover:opacity-100 bg-white border rounded px-2 py-1 text-xs hover:bg-[var(--gold)] hover:text-white transition-all">Edit</button>
+    </div>
+    `).join('') || '<div class="col-span-2 text-center text-gray-400 py-4">No tasks found.</div>';
+
+            } catch (e) {
+                list.innerHTML = '<div class="col-span-2 text-center text-red-400 py-4">Failed to load tasks</div>';
+            }
+        }
+
+        // --- DRAWER ---
+        const drawer = document.getElementById('drawer');
+        async function openDrawer(id, name) {
+            activeProjectId = id;
+            drawer.classList.add('drawer-open');
+            document.getElementById('drawerTitle').textContent = name;
+            document.getElementById('drawerSub').textContent = `Project #${id}`;
+
+            const boardLink = document.getElementById('drawerBoardLink');
+            if (boardLink) boardLink.href = `tasks.html?projectId=${id}`;
+
+            loadDrawerTeam(id);
+            loadDrawerMilestones(id);
+            loadDrawerTasks(id);
+        }
+
+        function closeDrawer() { drawer.classList.remove('drawer-open'); }
+
+        async function loadDrawerTeam(pid) {
+            const el = document.getElementById('teamList');
+            try {
+                const team = await APP.api.get(`/project-members/project/${pid}`);
+                const unique = team.filter((v, i, a) => a.findIndex(t => (t.user.id === v.user.id)) === i);
+                el.innerHTML = unique.map(t => `
+    <div class="flex items-center gap-2 p-2 text-sm">
+        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold">
+            ${t.user.name.substring(0, 2).toUpperCase()}
+        </div>
+        <div>
+            <div class="font-medium">${APP.util.escapeHtml(t.user.name)}</div>
+            <div class="text-xs text-gray-500">${t.role}</div>
+        </div>
+    </div>
+    `).join('');
+            } catch (e) { el.innerHTML = '<div class="text-xs text-red-400">Restricted</div>'; }
+        }
+
+        async function loadDrawerMilestones(pid) {
+            const achievedEl = document.getElementById('achievedMilestones');
+            const pendingEl = document.getElementById('pendingMilestones');
+            try {
+                const ms = await APP.api.get(`/milestones/project/${pid}`);
+                const achieved = ms.filter(m => m.progress === 100);
+                const pending = ms.filter(m => m.progress < 100);
+
+                achievedEl.innerHTML = achieved.length > 0 ? achieved.map(m => renderMilestoneCard(m, true)).join('') : '';
+                pendingEl.innerHTML = pending.length > 0 ? pending.map(m => renderMilestoneCard(m, false)).join('') : '<div class="text-xs text-gray-400 italic">No pending milestones</div>';
+            } catch (e) { console.error("Milestones load failed", e); }
+        }
+
+        function renderMilestoneCard(m, isAchieved) {
+            return `
+    <div class="p-3 bg-white border ${isAchieved ? 'border-green-100 shadow-sm' : 'border-gray-100'} rounded-lg">
+        <div class="flex justify-between items-center mb-1">
+            <span class="text-sm font-medium ${isAchieved ? 'text-green-700' : ''}">${APP.util.escapeHtml(m.name)} ${isAchieved ? '✅' : ''}</span>
+            <div class="flex items-center gap-2">
+                <button onclick="discussItem('MILESTONE', ${m.id}, '${APP.util.escapeHtml(m.name)}')" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[var(--gold)]" title="Discuss in Chat">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                </button>
+                <span class="text-xs font-bold ${isAchieved ? 'text-green-600' : 'text-[var(--gold)]'}">${m.progress}%</span>
+            </div>
+        </div>
+        <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full ${isAchieved ? 'bg-green-500' : 'bg-[var(--gold)]'}" style="width:${m.progress}%"></div>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">Due: ${m.dueDate || '-'}</div>
+    </div>`;
+        }
+
+        // --- DRAWER TASKS ---
+        async function loadDrawerTasks(pid) {
+            const el = document.getElementById('taskList');
+            try {
+                const tasks = await APP.api.get(`/tasks?projectId=${pid}`);
+                el.innerHTML = tasks.map(t => `
+    <div class="p-3 bg-white border rounded-lg group relative">
+        <div class="flex justify-between">
+            <span class="text-sm font-medium">${APP.util.escapeHtml(t.title)}</span>
+            <span class="text-[10px] px-1.5 py-0.5 bg-gray-50 border rounded">${t.status}</span>
+        </div>
+        <button onclick="openEditTask(${t.id})" class="mt-2 w-full py-1 text-xs border rounded hover:bg-[var(--gold)] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">Edit / View</button>
+    </div>
+    `).join('');
+            } catch (e) { el.innerHTML = ''; }
+        }
+
+        // --- EDIT TASK MODAL (Same as tasks.html) ---
+        const taskModal = document.getElementById('taskModal');
+
+        async function openEditTask(id) {
+            editingTaskId = id;
+            try {
+                const t = await APP.api.get(`/tasks/${id}`);
+                document.getElementById('tTitle').value = t.title;
+                document.getElementById('tDesc').value = t.description;
+                document.getElementById('tStatus').value = t.status;
+                document.getElementById('tPriority').value = t.priority;
+                document.getElementById('tDue').value = t.dueDate || '';
+                document.getElementById('tLocation').value = t.location || '';
+                document.getElementById('tAssignee').value = t.assigneeMemberId || '';
+
+                document.getElementById('taskModalTitle').textContent = 'Edit Task';
+                document.getElementById('attachmentsSection').classList.remove('hidden');
+
+                loadAttachments(id);
+
+                const m = document.getElementById('taskModal');
+                if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+            } catch (e) { APP.toast.error("Failed to load task"); }
+        }
+
+        function closeTaskModal() {
+            const m = document.getElementById('taskModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
+        async function saveTask() {
+            if (!editingTaskId) return;
+
+            try {
+                const t = await APP.api.get(`/tasks/${editingTaskId}`);
+                const assigneeVal = document.getElementById('tAssignee').value;
+                const sVal = document.getElementById('tStatus').value;
+                const pVal = document.getElementById('tPriority').value;
+
+                const payload = {
+                    projectId: t.projectId,
+                    title: document.getElementById('tTitle').value,
+                    description: document.getElementById('tDesc').value,
+                    status: sVal || 'BACKLOG',
+                    priority: pVal || 'MEDIUM',
+                    dueDate: document.getElementById('tDue').value || null,
+                    location: document.getElementById('tLocation').value || null,
+                    assigneeMemberId: assigneeVal ? parseInt(assigneeVal) : null
+                };
+
+                await APP.api.put(`/tasks/${editingTaskId}`, payload);
+                APP.toast.success("Task updated");
+                closeTaskModal();
+                refresh();
+                if (activeProjectId) loadDrawerTasks(activeProjectId);
+            } catch (e) {
+                console.error(e);
+                APP.toast.error("Operation failed");
+            }
+        }
+
+        async function useCurrentLocation() {
+            const btn = event.currentTarget;
+            const originalText = btn.textContent;
+            btn.textContent = '📍 Locating...';
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lng = pos.coords.longitude.toFixed(6);
+                    document.getElementById('tLocation').value = `GPS: ${lat}, ${lng}`;
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    APP.toast.success("Location updated");
+                },
+                (err) => {
+                    console.error(err);
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    APP.toast.error("Location denied or unavailable");
+                },
+                { timeout: 10000, enableHighAccuracy: true }
+            );
+        }
+
+        // --- ATTACHMENTS (WITH LOCATION) ---
+        async function loadAttachments(taskId) {
+            const list = document.getElementById('attachmentsList');
+            list.innerHTML = '<div class="text-xs text-gray-400">Loading...</div>';
+            try {
+                const atts = await APP.api.get(`/tasks/${taskId}/attachments`);
+                list.innerHTML = atts.map(a => {
+                    const mime = (a.mimeType || '').toLowerCase();
+                    const fname = (a.filename || a.fileName || '').toLowerCase();
+                    const isImg = mime.startsWith('image/') || fname.endsWith('.jpg') || fname.endsWith('.jpeg') ||
+                        fname.endsWith('.png') || fname.endsWith('.webp') || fname.endsWith('.gif');
+                    return `
+    <div
+        class="relative group aspect-square bg-white shadow-sm border rounded-xl overflow-hidden flex items-center justify-center transition-all hover:shadow-md">
+        ${isImg
+                            ? `<img src="${a.url}?t=${Date.now()}" class="w-full h-full object-cover cursor-zoom-in" onclick="openPreview('${a.url}?t=${Date.now()}')"
+            onerror="this.src='https://placehold.co/100x100?text=Error'" />`
+                            : `<a href="${a.url}" download
+            class="flex flex-col items-center justify-center text-gray-500 hover:text-[var(--gold)] p-3 text-center h-full w-full">
+            <span class="text-3xl mb-1">📄</span>
+            <span class="text-[10px] font-medium break-all line-clamp-2 px-1">${APP.util.escapeHtml(a.filename ||
+                                a.fileName || 'File')}</span>
+        </a>`
+                        }
+        <div class="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <a href="${a.url}" download class="bg-white/90 text-gray-600 rounded-full w-6 h-6 shadow-sm flex items-center justify-center hover:bg-[var(--gold)] hover:text-white transition-colors" title="Download">↓</a>
+            <button onclick="deleteAttachment(${a.id})" class="bg-white/90 text-red-600 rounded-full w-6 h-6 shadow-sm flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Delete">×</button>
+        </div>
+        <div
+            class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-[9px] p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            ${a.note ? `<div class="font-medium truncate">${APP.util.escapeHtml(a.note)}</div>` : ''}
+            ${(a.latitude && a.longitude) ? `<div class="text-[8px] text-gray-300">📍 ${a.latitude.toFixed(4)},
+                ${a.longitude.toFixed(4)}</div>` : ''}
+        </div>
+        <button onclick="deleteAttachment(${a.id})"
+            class="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full w-6 h-6 shadow-sm flex items-center justify-center translate-y-[-4px] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">×</button>
+    </div>
+    `;
+                }).join('') || '<div class="col-span-4 text-xs text-gray-400 italic">No attachments</div>';
+            } catch (e) { list.innerHTML = ''; }
+        }
+
+        window.deleteAttachment = async (id) => {
+            if (!confirm("Delete attachment?")) return;
+            try {
+                await APP.api.delete(`/task-attachments/${id}`);
+                loadAttachments(editingTaskId);
+            } catch (e) { APP.toast.error("Failed"); }
+        };
+
+        // --- PASSWORD MODAL ---
+        function togglePwModal() {
+            const m = document.getElementById('pwModal');
+            if (m) {
+                if (m.classList.contains('hidden')) { m.classList.remove('hidden'); m.classList.add('flex'); }
+                else { m.classList.add('hidden'); m.classList.remove('flex'); }
+            }
+        }
+
+        async function changePw() {
+            const cur = document.getElementById('pwCur').value;
+            const nw = document.getElementById('pwNew').value;
+            if (!cur || !nw) return APP.toast.error("Fill all fields");
+
+            try {
+                await APP.api.post('/account/change-password', { currentPassword: cur, newPassword: nw });
+                APP.toast.success("Password updated");
+                togglePwModal();
+            } catch (e) { APP.toast.error(e.message || "Failed"); }
+        }
+
+        // --- PREVIEW ---
+        function openPreview(url, cap) {
+            document.getElementById('imgPreview').src = url;
+            document.getElementById('imgPreviewCaption').textContent = cap || '';
+            const m = document.getElementById('imgPreviewModal');
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        function closePreview() {
+            const m = document.getElementById('imgPreviewModal');
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+
+        // --- CHAT LOGIC ---
+        let chatOpen = false;
+        let chatPolling = null;
+        let currentChatProjectId = null;
+        let myChannels = [];
+        let channelMembers = [];
+        let pendingReplyTo = null;
+
+        async function toggleChat(forceChannelId = null) {
+            const d = document.getElementById('chatDrawer');
+            d.classList.toggle('drawer-open');
+            chatOpen = d.classList.contains('drawer-open');
+
+            if (chatOpen) {
+                try {
+                    myChannels = await APP.api.get('/chat/channels');
+                    loadChatChannelList();
+                } catch (e) { console.error("Could not load channels", e); }
+
+                const idToOpen = forceChannelId || currentChatProjectId || (activeProjectId ? "P_" + activeProjectId : null);
+                if (idToOpen) {
+                    selectChatChannel(idToOpen);
+                }
+            } else {
+                stopChatPolling();
+            }
+        }
+
+        function loadChatChannelList() {
+            const container = document.getElementById('chatProjectList');
+            if (!myChannels.length) {
+                container.innerHTML = '<div class="p-8 text-center text-gray-400 text-xs italic">No channels found.</div>';
+                return;
+            }
+            container.innerHTML = myChannels.map(c => {
+                const initials = c.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const isActive = c.id === currentChatProjectId;
+                const unreadBadge = c.unreadCount > 0 ? `<div class="unread-badge ml-auto">${c.unreadCount}</div>` : '';
+                return `
+                  <div class="chat-list-item ${isActive ? 'active' : ''} flex items-center pr-4" onclick="selectChatChannel('${c.id}')" id="chatItem-${c.id}">
+                    <div class="chat-list-avatar">${initials}</div>
+                    <div class="chat-list-info">
+                      <div class="chat-list-name">${APP.util.escapeHtml(c.name)}</div>
+                      <div class="chat-list-last">${APP.util.escapeHtml(c.lastMessagePreview || c.subtext || 'General Channel')}</div>
+                    </div>
+                    ${unreadBadge}
+                  </div>
+                `;
+            }).join('');
+        }
+
+        function filterChatList() {
+            const q = document.getElementById('chatSearch').value.toLowerCase();
+            const items = document.querySelectorAll('.chat-list-item');
+            items.forEach(item => {
+                const name = item.querySelector('.chat-list-name').textContent.toLowerCase();
+                item.style.display = name.includes(q) ? 'flex' : 'none';
+            });
+        }
+
+        function selectChatChannel(id) {
+            currentChatProjectId = id;
+            document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active'));
+            const activeItem = document.getElementById(`chatItem-${id}`);
+            if (activeItem) activeItem.classList.add('active');
+
+            const c = myChannels.find(cx => cx.id === id);
+            if (c) {
+                channelMembers = c.members || [];
+                document.getElementById('chatTitle').textContent = c.name;
+                document.getElementById('chatSub').textContent = c.subtext || 'General Channel';
+                const avatar = document.getElementById('activeChatAvatar');
+                avatar.textContent = c.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                avatar.classList.remove('hidden');
+                document.getElementById('chatStatusInfo').classList.remove('hidden');
+                document.getElementById('chatInputSection').classList.remove('hidden');
+                markChannelRead(id);
+            }
+            loadChatMessages(id);
+            startChatPolling();
+        }
+
+        function startChatPolling() {
+            stopChatPolling();
+            chatPolling = setInterval(async () => {
+                const oldChannels = JSON.stringify(myChannels.map(c => ({ id: c.id, count: c.unreadCount })));
+                try {
+                    myChannels = await APP.api.get('/chat/channels');
+                    const newChannels = JSON.stringify(myChannels.map(c => ({ id: c.id, count: c.unreadCount })));
+
+                    if (oldChannels !== newChannels) {
+                        loadChatChannelList();
+                        const totalOld = JSON.parse(oldChannels).reduce((s, c) => s + c.count, 0);
+                        const totalNew = myChannels.reduce((s, c) => s + c.unreadCount, 0);
+
+                        const hasNewOutside = myChannels.some(c => {
+                            const old = JSON.parse(oldChannels).find(oc => oc.id === c.id);
+                            return c.unreadCount > (old ? old.count : 0) && c.id !== currentChatProjectId;
+                        });
+
+                        const soundPref = document.getElementById('prefChatSounds')?.checked;
+                        if (totalNew > totalOld && hasNewOutside && soundPref !== false) {
+                            const audio = document.getElementById('notifSound');
+                            if (audio) {
+                                audio.volume = 0.5;
+                                audio.play().catch(e => console.warn("Audio play blocked", e));
+                            }
+                        }
+                    }
+
+                    if (chatOpen && currentChatProjectId) {
+                        loadChatMessages(currentChatProjectId);
+                        markChannelRead(currentChatProjectId);
+                    }
+                } catch (e) { }
+            }, 5000);
+        }
+
+        function isSticky(el) {
+            return (el.scrollHeight - el.scrollTop) <= (el.clientHeight + 80);
+        }
+
+        function stopChatPolling() {
+            if (chatPolling) clearInterval(chatPolling);
+            chatPolling = null;
+        }
+
+        async function loadChatMessages(channelId) {
+            if (!channelId) return;
+            try {
+                const history = await APP.api.get(`/chat/channel/${channelId}`);
+                const container = document.getElementById('chatMessages');
+                const myEmail = APP.auth.getEmail();
+                let html = '';
+                let lastSender = null;
+
+                if (history.length === 0) {
+                    html = `
+                    <div class="chat-empty-state">
+                      <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                         <span class="text-3xl">👋</span>
+                      </div>
+                      <p class="text-sm font-medium">Start the conversation!</p>
+                      <p class="text-xs mt-1 text-center px-8">This is the beginning of the chat for ${document.getElementById('chatTitle').textContent}.</p>
+                    </div>`;
+                } else {
+                    history.forEach(m => {
+                        const myEmail = (APP.auth.getEmail() || '').toLowerCase();
+                        const senderEmail = (m.senderEmail || '').toLowerCase();
+                        const isMine = senderEmail === myEmail && myEmail !== '';
+                        const isDeleted = m.deleted;
+                        const initials = (m.senderName || '??').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                        const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const showHeader = m.senderEmail !== lastSender;
+                        lastSender = m.senderEmail;
+                        html += `
+                        <div class="chat-msg-group w-full flex ${isMine ? 'justify-end' : 'justify-start'} ${showHeader ? 'mt-4' : 'mt-1'}">
+                           <div class="flex max-w-[85%] gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}">
+                              <div class="chat-avatar ${showHeader ? '' : 'invisible'} flex-shrink-0">${initials}</div>
+                              <div class="chat-msg-content ${isMine ? 'items-end' : 'items-start'}">
+                                 ${showHeader ? `
+                                   <div class="chat-sender-name ${isMine ? 'text-right' : ''}">
+                                     ${APP.util.escapeHtml(isMine ? 'You' : m.senderName)}
+                                     <span class="chat-timestamp">${time}</span>
+                                   </div>` : ''}
+                                 <div class="chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'} group flex flex-col relative">
+                                    ${m.parentMessagePreview ? `
+                                      <div class="reply-snippet">
+                                         <p class="font-bold opacity-60">Replying to:</p>
+                                         <p class="truncate">${APP.util.escapeHtml(m.parentMessagePreview)}</p>
+                                      </div>
+                                    ` : ''}
+                                    
+                                    <div class="${isDeleted ? 'deleted-text' : ''} break-words">
+                                      ${isDeleted ? APP.util.escapeHtml(m.content) : highlightMentions(m.content || '')}
+                                    </div>
+
+                                    ${m.attachmentUrl && m.attachmentUrl !== 'undefined' && !isDeleted ? `
+                                      <div class="mt-2 pt-2 border-t ${isMine ? 'border-white/20' : 'border-gray-200'}">
+                                         ${String(m.attachmentUrl).toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|jfif|avif)$/) != null ? `
+                                           <div class="relative group mt-1">
+                                             <img src="${m.attachmentUrl}" alt="Attachment" class="max-w-full rounded-lg max-h-60 cursor-pointer shadow-sm hover:opacity-90" onclick="openPreview('${m.attachmentUrl}', 'Uploaded by ${APP.util.escapeHtml(m.senderName)}')">
+                                           </div>
+                                         ` : `
+                                           <a href="${m.attachmentUrl}" target="_blank" class="flex items-center gap-1.5 text-[10px] font-bold hover:underline">
+                                             📎 View Attachment
+                                           </a>
+                                         `}
+                                      </div>` : ''}
+
+                                    <div class="absolute top-1 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} flex gap-1 items-center">
+                                       ${!isDeleted ? `
+                                         <button onclick="replyToMsg(${m.id}, '${APP.util.escapeHtml(m.content || 'File')}')" class="message-action-btn p-1" title="Reply">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                         </button>
+                                       ` : ''}
+                                       ${isMine && !isDeleted ? `
+                                         <button onclick="deleteChatMsg(${m.id})" class="message-action-btn p-1 hover:text-red-500" title="Delete">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                                         </button>
+                                       ` : ''}
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>`;
+                    });
+                }
+                const sticky = isSticky(container);
+                container.innerHTML = html;
+                if (sticky) container.scrollTop = container.scrollHeight;
+            } catch (e) { console.error("Chat fail", e); }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            const fileUrl = document.getElementById('chatFileName').getAttribute('data-url');
+            if (!text && !fileUrl) return;
+            if (!currentChatProjectId) return APP.toast.info("Select a channel first");
+            try {
+                const payload = {
+                    content: text,
+                    attachmentUrl: fileUrl,
+                    type: fileUrl ? "FILE" : "TEXT",
+                    parentMessageId: pendingReplyTo
+                };
+                await APP.api.post(`/chat/channel/${currentChatProjectId}`, payload);
+                input.value = '';
+                clearChatUpload();
+                cancelReply();
+                await loadChatMessages(currentChatProjectId);
+                const container = document.getElementById('chatMessages');
+                if (container) container.scrollTop = container.scrollHeight;
+            } catch (e) { APP.toast.error("Message failed"); }
+        }
+
+        async function uploadChatFile() {
+            const fileInput = document.getElementById('chatFile');
+            if (!fileInput.files.length) return;
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            try {
+                const res = await fetch(`${APP.apiBase}/tasks/0/attachments`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${APP.auth.getToken()}` },
+                    body: formData
+                });
+                const data = await res.json();
+                const display = document.getElementById('chatFileName');
+                display.textContent = `📎 ${fileInput.files[0].name}`;
+                display.setAttribute('data-url', data.url || '');
+            } catch (e) { APP.toast.error("Upload failed"); }
+        }
+
+        function clearChatUpload() {
+            const d = document.getElementById('chatFileName');
+            d.textContent = '';
+            d.removeAttribute('data-url');
+            document.getElementById('chatFile').value = '';
+        }
+
+        async function deleteChatMsg(id) {
+            if (!confirm("Delete message?")) return;
+            try {
+                await APP.api.request(`/chat/messages/${id}`, { method: 'DELETE' });
+                loadChatMessages(currentChatProjectId);
+            } catch (e) { APP.toast.error("Failed to delete"); }
+        }
+
+        function replyToMsg(id, preview) {
+            pendingReplyTo = id;
+            document.getElementById('replyPreview').style.display = 'block';
+            document.getElementById('replyPreviewText').textContent = preview;
+            document.getElementById('chatInput').focus();
+        }
+
+        function cancelReply() {
+            pendingReplyTo = null;
+            document.getElementById('replyPreview').style.display = 'none';
+        }
+
+        async function markChannelRead(id) {
+            try { await APP.api.post(`/chat/channel/${id}/read`); } catch (e) { }
+            const item = document.getElementById(`chatItem-${id}`);
+            if (item) {
+                const badge = item.querySelector('.unread-badge');
+                if (badge) badge.remove();
+            }
+        }
+
+        // --- MENTIONS ---
+        function handleMention(e) {
+            const input = e.target;
+            const text = input.value;
+            const pos = input.selectionStart;
+            const lastAt = text.lastIndexOf('@', pos - 1);
+            if (lastAt !== -1 && !/\s/.test(text.substring(lastAt + 1, pos))) {
+                const query = text.substring(lastAt + 1, pos).toLowerCase();
+                showMentionPopup(query, lastAt);
+            } else {
+                hideMentionPopup();
+            }
+        }
+
+        function showMentionPopup(query, atPos) {
+            const popup = document.getElementById('mentionPopup');
+            const filtered = channelMembers.filter(m => m.name.toLowerCase().includes(query));
+            if (filtered.length === 0) { hideMentionPopup(); return; }
+            popup.innerHTML = filtered.map(m => `
+                <div class="mention-item" onclick="insertMention('${m.name.replace(/'/g, "\\'")}', ${atPos})">
+                  <div class="avatar">${m.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}</div>
+                  <span class="font-medium">${APP.util.escapeHtml(m.name)}</span>
+                </div>
+              `).join('');
+            popup.classList.remove('hidden');
+        }
+
+        function hideMentionPopup() {
+            document.getElementById('mentionPopup')?.classList.add('hidden');
+        }
+
+        function insertMention(name, atPos) {
+            const input = document.getElementById('chatInput');
+            const text = input.value;
+            const before = text.substring(0, atPos);
+            const after = text.substring(input.selectionStart);
+            input.value = before + '@' + name + ' ' + after;
+            hideMentionPopup();
+            input.focus();
+        }
+
+        function highlightMentions(text) {
+            if (!text) return '';
+            const escaped = APP.util.escapeHtml(text);
+            return escaped.replace(/@([a-zA-Z0-9\s.]{3,20})/g, (match, name) => {
+                const cleanName = name.trim();
+                if (channelMembers.some(m => m.name === cleanName)) {
+                    return `<span class="mention-highlight">${match}</span>`;
+                }
+                return match;
+            });
+        }
+
+        function discussItem(type, id, name) {
+            if (!activeProjectId) return APP.toast.info("Select a project first");
+            const d = document.getElementById('chatDrawer');
+            const targetChannelId = "P_" + activeProjectId;
+            
+            if (!d.classList.contains('drawer-open')) {
+                toggleChat(targetChannelId);
+            } else {
+                selectChatChannel(targetChannelId);
+            }
+            
+            const input = document.getElementById('chatInput');
+            input.value = `[${type} #${id}] Discussing: ${name}\n` + input.value;
+            input.focus();
+        }
+
+        function toggleChatSettings() {
+            const panel = document.getElementById('chatSettingsPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        function saveChatPrefs() {
+            const sounds = document.getElementById('prefChatSounds').checked;
+            const scroll = document.getElementById('prefChatScroll').checked;
+            localStorage.setItem('chat_prefs', JSON.stringify({ sounds, scroll }));
+            APP.toast.success("Preferences saved");
+        }
+
+        function loadChatPrefs() {
+            try {
+                const prefs = JSON.parse(localStorage.getItem('chat_prefs'));
+                if (prefs) {
+                    if (document.getElementById('prefChatSounds')) document.getElementById('prefChatSounds').checked = prefs.sounds;
+                    if (document.getElementById('prefChatScroll')) document.getElementById('prefChatScroll').checked = prefs.scroll;
+                }
+            } catch (e) { }
+        }
+
+        function clearChatHistoryLocal() {
+            if (!confirm("Clear your local chat cache? (Does not delete server data)")) return;
+            localStorage.removeItem('chat_cache_' + currentChatProjectId);
+            APP.toast.success("Local cache cleared");
+        }
+
+        // --- NEW CHANNEL MODAL ---
+        async function openNewChannelModal() {
+            document.getElementById('newChannelName').value = '';
+            try {
+                const users = await APP.api.get('/users/all');
+                const list = document.getElementById('channelMembersList');
+                const myEmail = APP.auth.getEmail();
+                list.innerHTML = users.filter(u => u.email !== myEmail).map(u => `
+                  <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                    <input type="checkbox" value="${u.id}" class="channel-user-cb rounded text-[var(--gold)] focus:ring-[var(--gold)]">
+                    <span class="text-sm truncate">${APP.util.escapeHtml(u.name)} <span class="text-xs text-gray-400">(${u.role})</span></span>
+                  </label>
+                `).join('');
+                document.getElementById('newChannelModal').classList.remove('hidden');
+                document.getElementById('newChannelModal').classList.add('flex');
+            } catch (e) {
+                APP.toast.error("Failed to load users for channel");
+            }
+        }
+
+        function closeNewChannelModal() {
+            document.getElementById('newChannelModal').classList.add('hidden');
+            document.getElementById('newChannelModal').classList.remove('flex');
+        }
+
+        async function submitNewChannel() {
+            const name = document.getElementById('newChannelName').value.trim();
+            if (!name) return APP.toast.error("Name is required");
+
+            const cbs = document.querySelectorAll('.channel-user-cb:checked');
+            const memberIds = Array.from(cbs).map(cb => parseInt(cb.value, 10));
+
+            if (memberIds.length === 0) return APP.toast.error("Select at least one member");
+
+            try {
+                const res = await fetch(`${APP.apiBase}/chat/channels/group?name=${encodeURIComponent(name)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${APP.auth.getToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(memberIds)
+                });
+                if (!res.ok) throw new Error("Failed");
+
+                closeNewChannelModal();
+                APP.toast.success("Channel created");
+
+                if (chatOpen) {
+                    myChannels = await APP.api.get('/chat/channels');
+                    loadChatChannelList();
+                }
+            } catch (e) {
+                APP.toast.error("Failed to create channel");
+            }
+        }
+
+    </script>
+    <!-- New Channel Modal -->
+    <div id="newChannelModal"
+        class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[2000] backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <h3 class="font-bold text-xl mb-4 text-[#1A1A1A]">Create New Channel</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Channel Name</label>
+                    <input type="text" id="newChannelName"
+                        class="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-[var(--gold)] focus:outline-none"
+                        placeholder="e.g. Design Team">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Select Members</label>
+                    <div id="channelMembersList" class="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1">
+                        <!-- users check boxes -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" onclick="closeNewChannelModal()"
+                    class="px-4 py-2 text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
+                <button type="button" onclick="submitNewChannel()"
+                    class="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[var(--gold)] hover:bg-[#aa8800] transition-colors shadow-md">Create</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

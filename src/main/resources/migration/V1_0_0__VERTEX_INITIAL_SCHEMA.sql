@@ -1,0 +1,188 @@
+-- ============================================================
+-- VERTEX - Initial Database Schema (Phase 1)
+-- Database: vertex_projects
+-- Version: 1.0.0
+-- ============================================================
+
+-- Note: This script documents the database structure.
+-- Actual table creation is handled by Spring Boot JPA with:
+-- spring.jpa.hibernate.ddl-auto=update
+
+-- ============================================================
+-- CORE TABLES (from existing AnanthaDesign application)
+-- ============================================================
+
+-- Users and Authentication
+-- CREATE TABLE users (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     username VARCHAR(255) UNIQUE NOT NULL,
+--     email VARCHAR(255) UNIQUE NOT NULL,
+--     password VARCHAR(255) NOT NULL,
+--     first_name VARCHAR(255),
+--     last_name VARCHAR(255),
+--     phone_number VARCHAR(20),
+--     is_active BOOLEAN DEFAULT TRUE,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- );
+
+-- Roles
+-- CREATE TABLE roles (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     name VARCHAR(100) UNIQUE NOT NULL,
+--     description VARCHAR(500)
+-- );
+
+-- User Roles (Many-to-Many)
+-- CREATE TABLE user_roles (
+--     user_id BIGINT NOT NULL,
+--     role_id BIGINT NOT NULL,
+--     PRIMARY KEY (user_id, role_id),
+--     FOREIGN KEY (user_id) REFERENCES users(id),
+--     FOREIGN KEY (role_id) REFERENCES roles(id)
+-- );
+
+-- Projects
+-- CREATE TABLE projects (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     name VARCHAR(255) NOT NULL,
+--     description TEXT,
+--     status VARCHAR(50),
+--     start_date DATE,
+--     end_date DATE,
+--     budget DECIMAL(15,2),
+--     created_by BIGINT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (created_by) REFERENCES users(id)
+-- );
+
+-- Project Members
+-- CREATE TABLE project_members (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NOT NULL,
+--     user_id BIGINT NOT NULL,
+--     role VARCHAR(100),
+--     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id),
+--     FOREIGN KEY (user_id) REFERENCES users(id),
+--     UNIQUE KEY unique_member (project_id, user_id)
+-- );
+
+-- Tasks
+-- CREATE TABLE tasks (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NOT NULL,
+--     title VARCHAR(255) NOT NULL,
+--     description TEXT,
+--     status VARCHAR(50),
+--     priority VARCHAR(50),
+--     assigned_to BIGINT,
+--     start_date DATE,
+--     due_date DATE,
+--     created_by BIGINT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id),
+--     FOREIGN KEY (assigned_to) REFERENCES users(id),
+--     FOREIGN KEY (created_by) REFERENCES users(id)
+-- );
+
+-- Milestones
+-- CREATE TABLE milestones (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NOT NULL,
+--     name VARCHAR(255) NOT NULL,
+--     description TEXT,
+--     target_date DATE,
+--     status VARCHAR(50),
+--     completion_percentage INT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id)
+-- );
+
+-- Chat Messages
+-- CREATE TABLE chat_messages (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NULL,
+--     sender_id BIGINT NOT NULL,
+--     message TEXT NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id),
+--     FOREIGN KEY (sender_id) REFERENCES users(id)
+-- );
+
+-- File Attachments
+-- CREATE TABLE attachments (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     file_name VARCHAR(255) NOT NULL,
+--     file_path VARCHAR(500),
+--     file_type VARCHAR(100),
+--     file_size BIGINT,
+--     task_id BIGINT,
+--     uploaded_by BIGINT NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (task_id) REFERENCES tasks(id),
+--     FOREIGN KEY (uploaded_by) REFERENCES users(id)
+-- );
+
+-- ============================================================
+-- NEW TABLES (Phase 1 - VERTEX 2.0 modules)
+-- ============================================================
+-- These are placeholders for the 24 new modules
+-- Detailed schemas will be created in Phase 2-6
+
+-- Budget Management (Module 3.1)
+-- CREATE TABLE budgets (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NOT NULL,
+--     total_amount DECIMAL(15,2) NOT NULL,
+--     description TEXT,
+--     status VARCHAR(50),
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id)
+-- );
+
+-- Expense Tracking (Module 3.2)
+-- CREATE TABLE expenses (
+--     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+--     project_id BIGINT NOT NULL,
+--     amount DECIMAL(15,2) NOT NULL,
+--     category VARCHAR(100),
+--     status VARCHAR(50),
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     FOREIGN KEY (project_id) REFERENCES projects(id)
+-- );
+
+-- ============================================================
+-- INDEXES
+-- ============================================================
+-- CREATE INDEX idx_users_email ON users(email);
+-- CREATE INDEX idx_projects_status ON projects(status);
+-- CREATE INDEX idx_tasks_project_id ON tasks(project_id);
+-- CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
+-- CREATE INDEX idx_chat_messages_project_id ON chat_messages(project_id);
+
+-- ============================================================
+-- MIGRATION NOTES
+-- ============================================================
+-- 1. This script is for documentation purposes
+-- 2. Actual tables are created by Spring Boot JPA/Hibernate
+-- 3. Use Flyway or Liquibase for version-controlled migrations
+-- 4. Phase 1 focuses on package structure and foundation
+-- 5. Modules 3.1-3.24 will be implemented in Phases 2-6
+
+-- ============================================================
+-- PHASE 1 COMPLETION CHECKLIST
+-- ============================================================
+-- ✓ Package renamed: com.anantha.design → com.vertex.projects
+-- ✓ build.gradle updated
+-- ✓ application.properties updated  
+-- ✓ Frontend branding updated
+-- ✓ Database schema documented
+-- ⚠ Functional testing required before Phase 2
+-- ⚠ API documentation (Swagger) to be generated
+-- ⚠ CI/CD pipeline to be configured

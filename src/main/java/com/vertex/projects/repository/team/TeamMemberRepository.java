@@ -1,0 +1,15 @@
+package com.vertex.projects.repository.team;
+
+import com.vertex.projects.model.team.TeamMember;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
+    List<TeamMember> findByTeamId(Long teamId);
+    List<TeamMember> findByUserId(Long userId);
+    List<TeamMember> findByTeamIdAndActive(Long teamId, boolean active);
+    void deleteByTeamIdAndUserId(Long teamId, Long userId);
+}
