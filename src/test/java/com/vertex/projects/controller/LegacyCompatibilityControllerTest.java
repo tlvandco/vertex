@@ -1,5 +1,8 @@
 package com.vertex.projects.controller;
 
+import com.vertex.projects.model.core.Project;
+import com.vertex.projects.repository.core.ProjectRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +21,21 @@ class LegacyCompatibilityControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @BeforeEach
+    void setUp() {
+        projectRepository.deleteAll();
+        Project testProject = Project.builder()
+                .name("Test Project")
+                .description("Test project for legacy compatibility tests")
+                .status(Project.ProjectStatus.DRAFT)
+                .active(true)
+                .build();
+        projectRepository.save(testProject);
+    }
 
     @Test
     void legacyPortfolioEndpointShouldBeAccessible() throws Exception {
@@ -53,7 +71,8 @@ class LegacyCompatibilityControllerTest {
 
     @Test
     void projectUpdateEndpointShouldBeAccessible() throws Exception {
-        mockMvc.perform(put("/api/projects/1")
+        Project testProject = projectRepository.findAll().stream().findFirst().orElseThrow();
+        mockMvc.perform(put("/api/projects/" + testProject.getId())
                         .contentType(APPLICATION_JSON)
                         .content("{\"name\":\"Updated Project\"}"))
                 .andExpect(status().isOk());
