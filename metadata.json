@@ -1,0 +1,10 @@
+{
+  "name": "VERTEX - Enterprise Project Management Platform",
+  "description": "Comprehensive project management and interior design platform with interactive dashboard, timeline milestones, financial tracking, design portal, team allocations, chat channels, and audit analytics.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
