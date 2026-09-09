@@ -38,6 +38,7 @@ let databaseState: {
   posTransactions: any[];
   catalogItems: any[];
   companies: any[];
+  legalDocuments: any[];
   chatChannels: any[];
   chatMessages: Record<string, any[]>;
   auditLogs: any[];
@@ -48,6 +49,7 @@ let databaseState: {
   posTransactions: [],
   catalogItems: [],
   companies: [],
+  legalDocuments: [],
   chatChannels: [],
   chatMessages: {},
   auditLogs: [],
@@ -58,10 +60,54 @@ let databaseState: {
 if (fs.existsSync(DB_FILE)) {
   try {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    databaseState = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    databaseState = {
+      ...databaseState,
+      ...parsed,
+      companies: Array.isArray(parsed.companies) ? parsed.companies : [],
+      legalDocuments: Array.isArray(parsed.legalDocuments) ? parsed.legalDocuments : []
+    };
   } catch (err) {
     console.warn('Could not read existing DB snapshot, initializing fresh:', err);
   }
+}
+
+// Ensure initial seed documents exist if legalDocuments is empty
+if (databaseState.legalDocuments.length === 0) {
+  databaseState.legalDocuments = [
+    {
+      id: 'doc_nda_1',
+      documentNumber: 'DOC-NDA-2026-01',
+      title: 'Mutual Non-Disclosure & Proprietary Architecture Covenant (Apex Heavy Crane & Rigging)',
+      category: 'NDA',
+      companyId: 'comp-1',
+      companyName: 'Apex Heavy Crane & Rigging Logistics',
+      projectId: 'p1',
+      projectName: 'Villa Aurelia Penthouse',
+      clientId: 'u1',
+      clientName: 'VERTEX Architectural Studio Inc.',
+      effectiveDate: '2025-06-15',
+      status: 'SIGNED_SEALED',
+      version: 'v1.0 Executed Vault Copy',
+      content: 'MUTUAL NON-DISCLOSURE AND PROPRIETARY ARCHITECTURAL COVENANT executed with Apex Heavy Crane & Rigging Logistics.',
+      uploadedFileUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMyAwIFJdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iagoxIDAgb2JqCjw8Ci9UaXRsZSAoVkVSVEVYIE11dHVhbCBOTkEpCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNTAgNzIwIFRECihoZWxsbykgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA1Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgotLTEKJSVFT0Y=',
+      fileName: 'VERTEX_Apex_Crane_Executed_Mutual_NDA_2026.pdf',
+      fileSize: '245 KB',
+      cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001',
+      signers: [
+        { id: 's1', name: 'Marcus Vance', email: 'm.vance@apexcrane.com', role: 'Chief Rigging Engineer & VP', hasSigned: true, signedAt: '2025-06-15 11:20:00', cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001' }
+      ],
+      signatureCertificate: {
+        signedByName: 'Marcus Vance',
+        signedByRole: 'VP Operations',
+        signedAt: '2025-06-15 11:20:00 UTC',
+        cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001',
+        ipAddress: '198.51.100.42',
+        certificateId: 'CERT-VTX-NDA-2026-0041'
+      },
+      createdAt: '2025-06-15'
+    }
+  ];
 }
 
 function persistDatabaseState() {
@@ -307,13 +353,14 @@ app.get('/api/system/architecture', (req, res) => {
 
 // Full Database State Synchronization (Atomic client-to-server sync)
 app.post('/api/db/sync', (req, res) => {
-  const { projects, invoices, posTransactions, catalogItems, companies, chatChannels, chatMessages, auditLogs } = req.body;
+  const { projects, invoices, posTransactions, catalogItems, companies, legalDocuments, chatChannels, chatMessages, auditLogs } = req.body;
 
   if (projects) databaseState.projects = projects;
   if (invoices) databaseState.invoices = invoices;
   if (posTransactions) databaseState.posTransactions = posTransactions;
   if (catalogItems) databaseState.catalogItems = catalogItems;
   if (companies) databaseState.companies = companies;
+  if (legalDocuments) databaseState.legalDocuments = legalDocuments;
   if (chatChannels) databaseState.chatChannels = chatChannels;
   if (chatMessages) databaseState.chatMessages = chatMessages;
   if (auditLogs) databaseState.auditLogs = auditLogs;
@@ -330,6 +377,7 @@ app.post('/api/db/sync', (req, res) => {
       posTransactions: databaseState.posTransactions.length,
       catalogItems: databaseState.catalogItems.length,
       companies: databaseState.companies.length,
+      legalDocuments: databaseState.legalDocuments.length,
       chatChannels: databaseState.chatChannels.length,
       auditLogs: databaseState.auditLogs.length
     }
@@ -407,10 +455,221 @@ app.get('/api/companies', (req, res) => {
 });
 
 app.post('/api/companies', (req, res) => {
-  const newCompany = { id: `comp-${Date.now()}`, ...req.body, createdAt: new Date().toISOString() };
+  const compId = req.body.id || `comp-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+  const newCompany = {
+    ...req.body,
+    id: compId,
+    createdAt: req.body.createdAt || nowIso.split('T')[0]
+  };
+
+  // If company has a signed NDA attached, record in databaseState.legalDocuments vault as well
+  if (newCompany.ndaStatus === 'SIGNED') {
+    const docId = newCompany.ndaDocumentId || `doc_nda_${Date.now()}`;
+    newCompany.ndaDocumentId = docId;
+    if (!newCompany.ndaSignedAt) newCompany.ndaSignedAt = nowIso;
+    if (!newCompany.ndaCryptoHash) {
+      newCompany.ndaCryptoHash = 'SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    }
+
+    const exists = databaseState.legalDocuments.some(d => d.id === docId || d.companyId === compId);
+    if (!exists) {
+      databaseState.legalDocuments.unshift({
+        id: docId,
+        documentNumber: `NDA-${(newCompany.name || 'COMP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${Math.floor(100 + Math.random() * 900)}`,
+        title: `Mutual Non-Disclosure Agreement - ${newCompany.name}`,
+        category: 'NDA',
+        companyId: compId,
+        companyName: newCompany.name,
+        projectId: (newCompany.assignedProjectIds && newCompany.assignedProjectIds[0]) || 'p1',
+        projectName: 'Master Corporate Covenant',
+        clientId: 'u1',
+        clientName: 'VERTEX Architecture Studio Inc.',
+        effectiveDate: newCompany.ndaSignedAt.split('T')[0],
+        status: 'SIGNED_SEALED',
+        content: `Executed Mutual Non-Disclosure Agreement with ${newCompany.legalName || newCompany.name}. Proprietary CAD designs and blueprints are confidential.`,
+        uploadedFileUrl: newCompany.ndaDocumentUrl,
+        fileName: newCompany.ndaFileName || `VERTEX_Executed_NDA_${newCompany.name.replace(/\s+/g, '_')}.pdf`,
+        fileSize: newCompany.ndaFileSize || '185 KB',
+        cryptoHash: newCompany.ndaCryptoHash,
+        signatureCertificate: {
+          signedByName: newCompany.ndaSignerName || newCompany.primaryContactName || 'Authorized Signatory',
+          signedByRole: `${newCompany.name} Officer`,
+          signedAt: newCompany.ndaSignedAt,
+          cryptoHash: newCompany.ndaCryptoHash,
+          certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+        },
+        createdAt: nowIso.split('T')[0]
+      });
+    }
+  }
+
   databaseState.companies.push(newCompany);
   persistDatabaseState();
   res.status(201).json(newCompany);
+});
+
+app.put('/api/companies/:id', (req, res) => {
+  const { id } = req.params;
+  const index = databaseState.companies.findIndex(c => c.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Company not found' });
+  }
+
+  const updatedCompany = { ...databaseState.companies[index], ...req.body };
+
+  // If NDA is signed, ensure legalDocuments table has the record
+  if (updatedCompany.ndaStatus === 'SIGNED' && updatedCompany.ndaDocumentUrl) {
+    const docId = updatedCompany.ndaDocumentId || `doc_nda_${Date.now()}`;
+    updatedCompany.ndaDocumentId = docId;
+    const docIndex = databaseState.legalDocuments.findIndex(d => d.id === docId || d.companyId === id);
+    const ndaDocRecord = {
+      id: docId,
+      documentNumber: `NDA-${(updatedCompany.name || 'COMP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${Math.floor(100 + Math.random() * 900)}`,
+      title: `Mutual Non-Disclosure Agreement - ${updatedCompany.name}`,
+      category: 'NDA',
+      companyId: id,
+      companyName: updatedCompany.name,
+      projectId: (updatedCompany.assignedProjectIds && updatedCompany.assignedProjectIds[0]) || 'p1',
+      projectName: 'Master Corporate Covenant',
+      clientId: 'u1',
+      clientName: 'VERTEX Architecture Studio Inc.',
+      effectiveDate: (updatedCompany.ndaSignedAt || new Date().toISOString()).split('T')[0],
+      status: 'SIGNED_SEALED',
+      content: `Executed Mutual Non-Disclosure Agreement with ${updatedCompany.legalName || updatedCompany.name}.`,
+      uploadedFileUrl: updatedCompany.ndaDocumentUrl,
+      fileName: updatedCompany.ndaFileName || `VERTEX_Executed_NDA_${updatedCompany.name.replace(/\s+/g, '_')}.pdf`,
+      fileSize: updatedCompany.ndaFileSize || '185 KB',
+      cryptoHash: updatedCompany.ndaCryptoHash || ('SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('')),
+      signatureCertificate: {
+        signedByName: updatedCompany.ndaSignerName || updatedCompany.primaryContactName || 'Authorized Signatory',
+        signedByRole: `${updatedCompany.name} Officer`,
+        signedAt: updatedCompany.ndaSignedAt || new Date().toISOString(),
+        cryptoHash: updatedCompany.ndaCryptoHash,
+        certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+      },
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    if (docIndex >= 0) {
+      databaseState.legalDocuments[docIndex] = { ...databaseState.legalDocuments[docIndex], ...ndaDocRecord };
+    } else {
+      databaseState.legalDocuments.unshift(ndaDocRecord);
+    }
+  }
+
+  databaseState.companies[index] = updatedCompany;
+  persistDatabaseState();
+  res.json(updatedCompany);
+});
+
+app.delete('/api/companies/:id', (req, res) => {
+  const { id } = req.params;
+  databaseState.companies = databaseState.companies.filter(c => c.id !== id);
+  persistDatabaseState();
+  res.json({ success: true });
+});
+
+// Legal Documents Vault API
+app.get('/api/legal-documents', (req, res) => {
+  res.json(databaseState.legalDocuments);
+});
+
+app.post('/api/legal-documents', (req, res) => {
+  const newDoc = {
+    id: req.body.id || `doc-${Date.now()}`,
+    documentNumber: req.body.documentNumber || `DOC-LEGAL-${Date.now().toString().slice(-4)}`,
+    status: req.body.status || 'SIGNED_SEALED',
+    createdAt: new Date().toISOString().split('T')[0],
+    ...req.body
+  };
+  databaseState.legalDocuments.unshift(newDoc);
+  persistDatabaseState();
+  res.status(201).json(newDoc);
+});
+
+// Upload Signed Contractor NDA Endpoint
+app.post('/api/upload-nda', (req, res) => {
+  const { fileName, fileData, fileSize, companyName, signerName, companyId } = req.body;
+  if (!fileName || !fileData) {
+    return res.status(400).json({ error: 'fileName and fileData are required' });
+  }
+
+  const cryptoHash = 'SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  const nowIso = new Date().toISOString();
+  const docId = `doc_nda_${Date.now()}`;
+
+  const ndaDoc = {
+    id: docId,
+    documentNumber: `NDA-${(companyName || 'COMP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${Math.floor(100 + Math.random() * 900)}`,
+    title: `Mutual Non-Disclosure Agreement - ${companyName || 'Contractor'}`,
+    category: 'NDA',
+    companyId: companyId || undefined,
+    companyName: companyName || 'Contractor Partner',
+    projectId: 'p1',
+    projectName: 'Master Corporate Covenant',
+    clientId: 'u1',
+    clientName: 'VERTEX Architecture Studio Inc.',
+    effectiveDate: nowIso.split('T')[0],
+    status: 'SIGNED_SEALED',
+    content: `Executed Mutual Non-Disclosure and Proprietary Intellectual Property Covenant. Signed by ${signerName || 'Authorized Officer'}.`,
+    uploadedFileUrl: fileData,
+    fileName,
+    fileSize: fileSize || '210 KB',
+    cryptoHash,
+    signatureCertificate: {
+      signedByName: signerName || 'Corporate Officer',
+      signedByRole: 'Authorized Signatory',
+      signedAt: nowIso,
+      cryptoHash,
+      certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+    },
+    createdAt: nowIso.split('T')[0]
+  };
+
+  databaseState.legalDocuments.unshift(ndaDoc);
+
+  // If companyId provided, also update that company in DB
+  if (companyId) {
+    const compIdx = databaseState.companies.findIndex(c => c.id === companyId);
+    if (compIdx >= 0) {
+      databaseState.companies[compIdx] = {
+        ...databaseState.companies[compIdx],
+        ndaStatus: 'SIGNED',
+        ndaDocumentId: docId,
+        ndaDocumentUrl: fileData,
+        ndaFileName: fileName,
+        ndaFileSize: fileSize || '210 KB',
+        ndaSignedAt: nowIso,
+        ndaSignerName: signerName || 'Authorized Officer',
+        ndaCryptoHash: cryptoHash
+      };
+    }
+  }
+
+  // Record audit log entry in DB
+  databaseState.auditLogs.unshift({
+    id: `aud-${Date.now()}`,
+    timestamp: nowIso,
+    action: 'UPLOAD_CONTRACTOR_NDA',
+    category: 'LEGAL_VAULT',
+    status: 'SUCCESS',
+    diagnostics: `Stored executed contractor NDA in database vault: ${fileName} (${cryptoHash})`,
+    tamperHash: cryptoHash
+  });
+
+  persistDatabaseState();
+
+  res.status(201).json({
+    success: true,
+    documentId: docId,
+    documentNumber: ndaDoc.documentNumber,
+    fileName,
+    fileSize: ndaDoc.fileSize,
+    cryptoHash,
+    signedAt: nowIso,
+    document: ndaDoc
+  });
 });
 
 // Audit Logs API

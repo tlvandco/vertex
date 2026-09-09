@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { DesignConcept, MarketArticle } from '../types';
+import { DesignConcept, MarketArticle, Inquiry } from '../types';
+import { ArchitecturalTools } from './ArchitecturalTools';
 import {
   Sparkles,
   Upload,
@@ -32,7 +33,15 @@ import {
   ArrowRight,
   ExternalLink,
   Download,
-  Info
+  Info,
+  Inbox,
+  Clock,
+  CheckCircle,
+  UserCheck,
+  MessageSquare,
+  AlertCircle,
+  Calendar,
+  ArrowUpRight
 } from 'lucide-react';
 
 const CURATED_ARCHITECTURAL_IMAGES = [
@@ -82,13 +91,30 @@ export const DesignPortalView: React.FC = () => {
     deleteDesignConcept,
     promoteConceptToPortfolio,
     createDesignRequest,
+    inquiries,
     submitInquiry,
+    updateInquiryStatus,
     articles,
     currentUser,
     addToast
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'request' | 'contact' | 'gallery' | 'articles'>('request');
+  const isClient = currentUser.role === 'CLIENT';
+  const isStaff = currentUser.role === 'DESIGNER' || currentUser.role === 'ADMIN' || currentUser.role === 'PROJECT_MANAGER';
+
+  type TabType = 'request' | 'gallery' | 'tools' | 'contact' | 'inquiries' | 'articles';
+  const [activeTab, setActiveTab] = useState<TabType>('request');
+  const [inquiryStaffFilter, setInquiryStaffFilter] = useState<'ALL' | 'NEW' | 'CONTACTED' | 'RESOLVED'>('ALL');
+
+  // RBAC Tab Enforcer: "Get in touch" is strictly reserved for clients alone.
+  useEffect(() => {
+    if (!isClient && activeTab === 'contact') {
+      setActiveTab('tools');
+    }
+    if (!isStaff && activeTab === 'inquiries') {
+      setActiveTab('request');
+    }
+  }, [isClient, isStaff, activeTab]);
 
   // AI Design Generation State
   const [projectName, setProjectName] = useState('Beverly Hills Penthouse Salon');
@@ -314,15 +340,25 @@ export const DesignPortalView: React.FC = () => {
             </p>
           </div>
 
-          {/* Quick Universal "Get In Touch" Button for all users */}
+          {/* Header Action Button: Client gets "Get In Touch", Staff gets "Architectural Tools" */}
           <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => setActiveTab('contact')}
-              className="px-5 py-3 rounded-2xl bg-[#D4AF37] hover:bg-[#B8860B] text-[#2C2416] font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Send className="w-4 h-4 text-[#2C2416]" />
-              <span>Get In Touch</span>
-            </button>
+            {isClient ? (
+              <button
+                onClick={() => setActiveTab('contact')}
+                className="px-5 py-3 rounded-2xl bg-[#D4AF37] hover:bg-[#B8860B] text-[#2C2416] font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Send className="w-4 h-4 text-[#2C2416]" />
+                <span>Get In Touch</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveTab('tools')}
+                className="px-5 py-3 rounded-2xl bg-[#D4AF37] hover:bg-[#B8860B] text-[#2C2416] font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Compass className="w-4 h-4 text-[#2C2416]" />
+                <span>Architectural Tools</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('gallery')}
               className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all flex items-center gap-2 cursor-pointer border border-white/20"
@@ -336,17 +372,19 @@ export const DesignPortalView: React.FC = () => {
         {/* Tab Buttons */}
         <div className="flex items-center gap-2 mt-8 overflow-x-auto scrollbar-none pt-4 border-t border-white/10">
           {[
-            { id: 'request', label: 'AI Design Engine', icon: Sparkles },
-            { id: 'gallery', label: 'Studio Concepts & Masterworks', icon: Palette },
-            { id: 'contact', label: 'Get In Touch (Consultation)', icon: Send },
-            { id: 'articles', label: 'Editorial & Material Trends', icon: BookOpen }
+            { id: 'request' as const, label: 'AI Design Engine', icon: Sparkles },
+            { id: 'gallery' as const, label: 'Studio Concepts & Masterworks', icon: Palette },
+            { id: 'tools' as const, label: 'Architectural Tools & Specs', icon: Compass },
+            ...(isClient ? [{ id: 'contact' as const, label: 'Get In Touch (Consultation)', icon: Send }] : []),
+            ...(isStaff ? [{ id: 'inquiries' as const, label: `Client Inquiries (${inquiries.filter(i => i.status === 'NEW').length} New)`, icon: Inbox }] : []),
+            { id: 'articles' as const, label: 'Editorial & Material Trends', icon: BookOpen }
           ].map(t => {
             const Icon = t.icon;
             const isActive = activeTab === t.id;
             return (
               <button
                 key={t.id}
-                onClick={() => setActiveTab(t.id as any)}
+                onClick={() => setActiveTab(t.id)}
                 className={`px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[#D4AF37] text-[#2C2416] shadow-md font-bold'
@@ -751,131 +789,354 @@ export const DesignPortalView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: GET IN TOUCH (INQUIRY FOR ALL USERS) */}
-      {activeTab === 'contact' && (
-        <div className="max-w-3xl mx-auto bg-white p-8 rounded-3xl border border-gray-200/80 shadow-xs space-y-6">
-          <div className="text-center space-y-1">
-            <div className="inline-flex p-3 rounded-2xl bg-amber-50 text-[#8B7355] border border-amber-200 shadow-xs mb-1">
-              <Send className="w-6 h-6 text-[#D4AF37]" />
+      {/* TAB 3: GET IN TOUCH (RESTRICTED TO CLIENTS ALONE) */}
+      {isClient && activeTab === 'contact' && (
+        <div className="space-y-8">
+          <div className="max-w-3xl mx-auto bg-white p-8 rounded-3xl border border-gray-200/80 shadow-xs space-y-6">
+            <div className="text-center space-y-1">
+              <div className="inline-flex p-3 rounded-2xl bg-amber-50 text-[#8B7355] border border-amber-200 shadow-xs mb-1">
+                <Send className="w-6 h-6 text-[#D4AF37]" />
+              </div>
+              <h3 className="text-2xl font-serif font-bold text-[#2C2416]">
+                Client Consultation & Space Inquiry
+              </h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Initiate a confidential project discussion with our architectural principals, design directors, and luxury procurement specialists.
+              </p>
             </div>
-            <h3 className="text-2xl font-serif font-bold text-[#2C2416]">
-              Consultation & Space Inquiry
-            </h3>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Initiate a confidential project discussion with our architectural principals, design directors, and luxury procurement specialists.
-            </p>
+
+            <form onSubmit={handleSubmitInquiry} className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={inqName}
+                    onChange={e => setInqName(e.target.value)}
+                    placeholder="e.g. Lady Vivienne Montgomery"
+                    required
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    value={inqEmail}
+                    onChange={e => setInqEmail(e.target.value)}
+                    placeholder="name@domain.com"
+                    required
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={inqPhone}
+                    onChange={e => setInqPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Company / Estate Trust</label>
+                  <input
+                    type="text"
+                    value={inqCompany}
+                    onChange={e => setInqCompany(e.target.value)}
+                    placeholder="e.g. Sterling Heritage Trust"
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Engagement Type</label>
+                  <select
+                    value={inqType}
+                    onChange={e => setInqType(e.target.value as any)}
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
+                  >
+                    <option value="RESIDENTIAL">Luxury Residential</option>
+                    <option value="COMMERCIAL">Executive Commercial</option>
+                    <option value="CONSULTATION">Advisory & Feasibility</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Target Timeline</label>
+                  <select
+                    value={inqTimeline}
+                    onChange={e => setInqTimeline(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
+                  >
+                    <option value="Immediate (< 1 month)">Immediate (&lt; 1 month)</option>
+                    <option value="1-3 months">1-3 months</option>
+                    <option value="3-6 months">3-6 months</option>
+                    <option value="6+ months">6+ months</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Contact</label>
+                  <select
+                    value={inqContactPref}
+                    onChange={e => setInqContactPref(e.target.value as any)}
+                    className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
+                  >
+                    <option value="EMAIL">Email Brief</option>
+                    <option value="PHONE">Direct Phone Call</option>
+                    <option value="BOTH">Both Channels</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Message & Architectural Vision</label>
+                <textarea
+                  rows={4}
+                  value={inqMessage}
+                  onChange={e => setInqMessage(e.target.value)}
+                  placeholder="Describe your architectural goals, site coordinates, volume specifications, and target materials..."
+                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-[#2C2416] hover:bg-black text-[#D4AF37] font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Submit Confidential Architectural Brief</span>
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={handleSubmitInquiry} className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
-                <input
-                  type="text"
-                  value={inqName}
-                  onChange={e => setInqName(e.target.value)}
-                  placeholder="e.g. Lady Vivienne Montgomery"
-                  required
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
+          {/* Client's Tracked Consultation Inquiries */}
+          <div className="max-w-3xl mx-auto bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#D4AF37]" />
+                <h4 className="font-serif font-bold text-gray-900 text-sm">
+                  My Consultation Inquiries & Direct Line
+                </h4>
               </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-bold">
+                Private Advisory Channel
+              </span>
+            </div>
+
+            {inquiries.filter(i => (currentUser.email && i.email.toLowerCase() === currentUser.email.toLowerCase()) || (currentUser.name && i.name.toLowerCase() === currentUser.name.toLowerCase())).length > 0 ? (
+              <div className="space-y-3">
+                {inquiries
+                  .filter(i => (currentUser.email && i.email.toLowerCase() === currentUser.email.toLowerCase()) || (currentUser.name && i.name.toLowerCase() === currentUser.name.toLowerCase()))
+                  .map(inq => (
+                    <div key={inq.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-gray-900">{inq.spaceType || 'Estate Space'}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">• {new Date(inq.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1">{inq.message}</p>
+                        <div className="text-[10px] text-gray-400 font-mono">
+                          Timeline: {inq.timeline} | Channel: {inq.preferredContact}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {inq.status === 'NEW' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-50 text-[#8B7355] border border-amber-200">
+                            <Clock className="w-3 h-3" />
+                            <span>Pending Review</span>
+                          </span>
+                        )}
+                        {inq.status === 'CONTACTED' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                            <UserCheck className="w-3 h-3" />
+                            <span>Director Assigned</span>
+                          </span>
+                        )}
+                        {inq.status === 'RESOLVED' && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Brief Formalized</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 py-3 text-center italic">
+                No previous inquiries recorded for your account. Submit the brief above to establish a direct advisory line with our senior design principals.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ARCHITECTURAL STUDIO TOOLS & STANDARD WORKBENCH */}
+      {activeTab === 'tools' && (
+        <ArchitecturalTools />
+      )}
+
+      {/* TAB: CLIENT INQUIRIES & LEADS REVIEW (STAFF ONLY) */}
+      {isStaff && activeTab === 'inquiries' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address *</label>
-                <input
-                  type="email"
-                  value={inqEmail}
-                  onChange={e => setInqEmail(e.target.value)}
-                  placeholder="name@domain.com"
-                  required
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
+                <div className="flex items-center gap-2">
+                  <Inbox className="w-5 h-5 text-[#D4AF37]" />
+                  <h3 className="font-serif font-bold text-gray-900 text-lg">
+                    Client Consultation & Advisory Queue
+                  </h3>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Manage incoming client advisory briefs, assign senior directors, and transition leads into projects.
+                </p>
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl text-xs font-semibold">
+                {(['ALL', 'NEW', 'CONTACTED', 'RESOLVED'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setInquiryStaffFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      inquiryStaffFilter === f
+                        ? 'bg-[#2C2416] text-[#D4AF37] font-bold shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {f === 'ALL' ? 'All Leads' : f}
+                    {f === 'NEW' && ` (${inquiries.filter(i => i.status === 'NEW').length})`}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  value={inqPhone}
-                  onChange={e => setInqPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
+            {/* Metrics Ribbon */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Total Inbound</span>
+                <span className="text-lg font-bold text-gray-900 font-mono mt-0.5 block">{inquiries.length} Inquiries</span>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Company / Estate Trust</label>
-                <input
-                  type="text"
-                  value={inqCompany}
-                  onChange={e => setInqCompany(e.target.value)}
-                  placeholder="e.g. Sterling Heritage Trust"
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                />
+              <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80">
+                <span className="text-[10px] text-amber-800 uppercase font-bold tracking-wider block">New / Pending</span>
+                <span className="text-lg font-bold text-[#8B7355] font-mono mt-0.5 block">
+                  {inquiries.filter(i => i.status === 'NEW').length} Leads
+                </span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Engagement Type</label>
-                <select
-                  value={inqType}
-                  onChange={e => setInqType(e.target.value as any)}
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
-                >
-                  <option value="RESIDENTIAL">Luxury Residential</option>
-                  <option value="COMMERCIAL">Executive Commercial</option>
-                  <option value="CONSULTATION">Advisory & Feasibility</option>
-                </select>
+              <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200/80">
+                <span className="text-[10px] text-blue-800 uppercase font-bold tracking-wider block">Contacted</span>
+                <span className="text-lg font-bold text-blue-900 font-mono mt-0.5 block">
+                  {inquiries.filter(i => i.status === 'CONTACTED').length} Active
+                </span>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Target Timeline</label>
-                <select
-                  value={inqTimeline}
-                  onChange={e => setInqTimeline(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
-                >
-                  <option value="Immediate (< 1 month)">Immediate (&lt; 1 month)</option>
-                  <option value="1-3 months">1-3 months</option>
-                  <option value="3-6 months">3-6 months</option>
-                  <option value="6+ months">6+ months</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Contact</label>
-                <select
-                  value={inqContactPref}
-                  onChange={e => setInqContactPref(e.target.value as any)}
-                  className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
-                >
-                  <option value="EMAIL">Email Brief</option>
-                  <option value="PHONE">Direct Phone Call</option>
-                  <option value="BOTH">Both Channels</option>
-                </select>
+              <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80">
+                <span className="text-[10px] text-emerald-800 uppercase font-bold tracking-wider block">Resolved / Converted</span>
+                <span className="text-lg font-bold text-emerald-900 font-mono mt-0.5 block">
+                  {inquiries.filter(i => i.status === 'RESOLVED').length} Formalized
+                </span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Message & Architectural Vision</label>
-              <textarea
-                rows={4}
-                value={inqMessage}
-                onChange={e => setInqMessage(e.target.value)}
-                placeholder="Describe your architectural goals, site coordinates, volume specifications, and target materials..."
-                className="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-[#D4AF37]"
-              />
-            </div>
+            {/* Inquiries List */}
+            <div className="space-y-4 pt-2">
+              {inquiries
+                .filter(inq => inquiryStaffFilter === 'ALL' || inq.status === inquiryStaffFilter)
+                .map(inq => (
+                  <div
+                    key={inq.id}
+                    className="p-5 bg-gray-50/80 rounded-2xl border border-gray-200 hover:border-gray-300 transition-all space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/70">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-gray-900 text-sm">{inq.name}</h4>
+                          {inq.companyName && (
+                            <span className="text-xs text-gray-500 font-medium">({inq.companyName})</span>
+                          )}
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-gray-600 border border-gray-200 font-semibold">
+                            {inq.inquiryType}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                          <a href={`mailto:${inq.email}`} className="flex items-center gap-1 hover:text-[#D4AF37]">
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{inq.email}</span>
+                          </a>
+                          {inq.phone && (
+                            <a href={`tel:${inq.phone}`} className="flex items-center gap-1 hover:text-[#D4AF37]">
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>{inq.phone}</span>
+                            </a>
+                          )}
+                          <span className="text-[11px] text-gray-400 font-mono">
+                            {new Date(inq.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
 
-            <button
-              type="submit"
-              className="w-full py-3.5 bg-[#2C2416] hover:bg-black text-[#D4AF37] font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              <span>Submit Confidential Architectural Brief</span>
-            </button>
-          </form>
+                      {/* Status & Quick Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {inq.status === 'NEW' && (
+                          <button
+                            onClick={() => updateInquiryStatus(inq.id, 'CONTACTED')}
+                            className="px-3 py-1.5 bg-[#2C2416] text-[#D4AF37] hover:bg-black text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Mark Contacted</span>
+                          </button>
+                        )}
+                        {inq.status === 'CONTACTED' && (
+                          <button
+                            onClick={() => updateInquiryStatus(inq.id, 'RESOLVED')}
+                            className="px-3 py-1.5 bg-emerald-700 text-white hover:bg-emerald-800 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>Convert to Project</span>
+                          </button>
+                        )}
+                        {inq.status === 'RESOLVED' && (
+                          <button
+                            onClick={() => updateInquiryStatus(inq.id, 'NEW')}
+                            className="px-2.5 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                          >
+                            Re-open Lead
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-2.5 bg-white rounded-xl border border-gray-200/60">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold block">Space Requirement</span>
+                        <span className="font-semibold text-gray-800">{inq.spaceType}</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-gray-200/60">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold block">Target Timeline</span>
+                        <span className="font-semibold text-gray-800">{inq.timeline}</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-gray-200/60">
+                        <span className="text-[10px] text-gray-400 uppercase font-bold block">Preferred Channel</span>
+                        <span className="font-semibold text-gray-800">{inq.preferredContact}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border border-gray-200/60 text-xs text-gray-700">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Architectural Brief:</span>
+                      <p className="leading-relaxed">{inq.message}</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       )}
 

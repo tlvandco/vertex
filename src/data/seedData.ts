@@ -1399,6 +1399,69 @@ export const SEED_LEGAL_DOCUMENTS: LegalDocument[] = [
       { id: 's8', name: 'Eleanor Sterling', email: 'eleanor@sterlingholdings.com', role: 'Client', hasSigned: false }
     ],
     createdAt: '2026-07-10'
+  },
+  {
+    id: 'doc_nda_1',
+    documentNumber: 'DOC-NDA-2026-01',
+    title: 'Mutual Non-Disclosure & Proprietary Architecture Covenant (Apex Crane & Rigging)',
+    category: 'NDA',
+    companyId: 'comp-1',
+    companyName: 'Apex Heavy Crane & Rigging Logistics',
+    projectId: 'p1',
+    projectName: 'Villa Aurelia Penthouse',
+    clientId: 'u1',
+    clientName: 'VERTEX Architectural Studio Inc.',
+    effectiveDate: '2025-06-15',
+    status: 'SIGNED_SEALED',
+    version: 'v1.0 Executed Vault Copy',
+    content: `MUTUAL NON-DISCLOSURE AND PROPRIETARY ARCHITECTURAL COVENANT.\n\nDisclosing Party: VERTEX Architectural Studio Inc. (California Corp #VTX-99481)\nReceiving Party: Apex Crane, Carrier & Structural Rigging LLC (EIN-88-2910471)\n\n1. RECITALS: Recipient provides heavy hydraulic crane rigging, high-altitude facade glazing, and structural beam positioning for VERTEX luxury residential projects.\n\n2. CONFIDENTIALITY: Recipient shall maintain in strict Zero-Trust confidence all architectural blueprints, structural load calculations, penthouse site layouts, and client identities. Under no circumstances shall Recipient publish, photograph, or transmit project assets.\n\n3. LIQUIDATED DAMAGES: Liquidated damages for breach of estate confidentiality are stipulated at $2,500,000 per violation plus injunctive relief.\n\nExecuted under California law and sealed into the VERTEX cryptographic compliance vault.`,
+    uploadedFileUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMyAwIFJdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNTAgNzIwIFRECihoZWxsbykgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA1Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgotLTEKJSVFT0Y=',
+    fileName: 'VERTEX_Apex_Crane_Executed_Mutual_NDA_2026.pdf',
+    fileSize: '245 KB',
+    signers: [
+      { id: 's9', name: 'David Thorne', email: 'dispatch@apexcrane-rigging.com', role: 'Managing Partner (Apex Rigging)', hasSigned: true, signedAt: '2025-06-15 11:20:00 UTC', cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001' },
+      { id: 's10', name: 'Alexander Wright, AIA', email: 'admin@vertex.com', role: 'Principal Architect (VERTEX)', hasSigned: true, signedAt: '2025-06-15 14:00:00 UTC', cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001' }
+    ],
+    signatureCertificate: {
+      signedByName: 'David Thorne (Apex) & Alexander Wright (VERTEX)',
+      signedByRole: 'Managing Partner & Principal Architect',
+      signedAt: '2025-06-15 14:00:00 UTC',
+      cryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001',
+      ipAddress: '192.168.1.104 & 10.0.4.1',
+      certificateId: 'CERT-NDA-APEX-2025-9910'
+    },
+    createdAt: '2025-06-15'
+  },
+  {
+    id: 'doc_nda_2',
+    documentNumber: 'DOC-NDA-2026-02',
+    title: 'Mutual Non-Disclosure & Bespoke Joinery Covenant (Poliform & Molteni)',
+    category: 'NDA',
+    companyId: 'comp-5',
+    companyName: 'Poliform & Molteni Bespoke Joinery',
+    projectId: 'p1',
+    projectName: 'Villa Aurelia Penthouse',
+    clientId: 'u1',
+    clientName: 'VERTEX Architectural Studio Inc.',
+    effectiveDate: '2025-07-04',
+    status: 'SIGNED_SEALED',
+    version: 'v1.0 Executed Vault Copy',
+    content: `MUTUAL NON-DISCLOSURE AND ARTISAN TRADE SECRETS COVENANT.\n\nDisclosing Party: VERTEX Architectural Studio Inc.\nReceiving Party: Poliform Contract Luxury Millwork SpA (EIN-99-1029384)\n\nGoverns trade secret protections over smoked eucalyptus millwork dimensions, concealed bronze hardware patents, and proprietary acoustic wall paneling matrices.`,
+    uploadedFileUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMyAwIFJdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNTAgNzIwIFRECihoZWxsbykgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA1Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgotLTEKJSVFT0Y=',
+    fileName: 'VERTEX_Poliform_Executed_Mutual_NDA_2026.pdf',
+    fileSize: '312 KB',
+    signers: [
+      { id: 's11', name: 'Matteo Rossi', email: 'contract@poliform-joinery.com', role: 'Artisan Director', hasSigned: true, signedAt: '2025-07-04 10:15:00 UTC' }
+    ],
+    signatureCertificate: {
+      signedByName: 'Matteo Rossi & Alexander Wright',
+      signedByRole: 'Corporate Representative & Principal',
+      signedAt: '2025-07-04 10:15:00 UTC',
+      cryptoHash: 'SHA256:9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
+      ipAddress: '194.242.110.12',
+      certificateId: 'CERT-NDA-POLI-2025-4412'
+    },
+    createdAt: '2025-07-04'
   }
 ];
 
@@ -1452,6 +1515,13 @@ export const SEED_COMPANIES: Company[] = [
     insuranceCOIStatus: 'VALID',
     insuranceExpiryDate: '2026-11-30',
     ndaStatus: 'SIGNED',
+    ndaDocumentId: 'doc_nda_1',
+    ndaDocumentUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMyAwIFJdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNTAgNzIwIFRECihoZWxsbykgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA1Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgotLTEKJSVFT0Y=',
+    ndaFileName: 'VERTEX_Apex_Crane_Executed_Mutual_NDA_2026.pdf',
+    ndaFileSize: '245 KB',
+    ndaSignedAt: '2025-06-15T14:00:00Z',
+    ndaSignerName: 'David Thorne (Managing Partner)',
+    ndaCryptoHash: 'SHA256:e8b390a77f12e84c98a31e843f54817a0b84f2ad105829148b8c8d88e001',
     creditLimit: 750000,
     riskTier: 'LOW',
     createdAt: '2025-06-15',
@@ -1559,6 +1629,13 @@ export const SEED_COMPANIES: Company[] = [
     insuranceCOIStatus: 'VALID',
     insuranceExpiryDate: '2026-09-30',
     ndaStatus: 'SIGNED',
+    ndaDocumentId: 'doc_nda_2',
+    ndaDocumentUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbMyAwIFJdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KL0NvbnRlbnRzIDQgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9MZW5ndGggMTIwCj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNTAgNzIwIFRECihoZWxsbykgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTggMDAwMDAgbiAKMDAwMDAwMDA2NiAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA1Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgotLTEKJSVFT0Y=',
+    ndaFileName: 'VERTEX_Poliform_Executed_Mutual_NDA_2026.pdf',
+    ndaFileSize: '312 KB',
+    ndaSignedAt: '2025-07-04T10:15:00Z',
+    ndaSignerName: 'Matteo Rossi (Artisan Director)',
+    ndaCryptoHash: 'SHA256:9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
     creditLimit: 1200000,
     riskTier: 'LOW',
     createdAt: '2025-07-04',

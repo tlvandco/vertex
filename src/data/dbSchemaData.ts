@@ -58,7 +58,7 @@ CREATE TABLE user_sessions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 2. ENTERPRISE COMPANIES & VENDORS ("CARANIES")
+-- 2. ENTERPRISE COMPANIES & CONTRACTORS ("CARANIES")
 CREATE TABLE companies (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
@@ -71,8 +71,38 @@ CREATE TABLE companies (
   trade_credit_limit NUMERIC(15, 2) NOT NULL DEFAULT 50000.00,
   trade_credit_used NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
   compliance_verified BOOLEAN NOT NULL DEFAULT TRUE,
+  insurance_coi_status VARCHAR(50) NOT NULL DEFAULT 'VALID',
+  insurance_expiry_date DATE,
+  nda_status VARCHAR(50) NOT NULL DEFAULT 'SIGNED',
+  nda_document_id UUID,
+  nda_document_url TEXT,
+  nda_file_name VARCHAR(255),
+  nda_file_size VARCHAR(50),
+  nda_signed_at TIMESTAMPTZ,
+  nda_signer_name VARCHAR(255),
+  nda_crypto_hash VARCHAR(255),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2B. LEGAL VAULT & EXECUTED NDAS
+CREATE TABLE legal_documents (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  document_number VARCHAR(100) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  category VARCHAR(100) NOT NULL, -- 'CONTRACT', 'NDA', 'DRAW_AGREEMENT', 'LIEN_WAIVER'
+  company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+  client_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  effective_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  status VARCHAR(50) NOT NULL DEFAULT 'SIGNED_SEALED',
+  content TEXT,
+  uploaded_file_url TEXT,
+  file_name VARCHAR(255),
+  file_size VARCHAR(50),
+  crypto_hash VARCHAR(255),
+  signature_certificate JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 3. ARCHITECTURAL PORTFOLIO & PROJECTS
@@ -381,6 +411,56 @@ export const DATABASE_SCHEMA_TABLES: DBSchemaTable[] = [
     indexes: [
       { name: 'pk_audit_logs', columns: ['id'], type: 'BTREE', isUnique: true },
       { name: 'idx_audit_logs_timestamp_desc', columns: ['timestamp'], type: 'BTREE', isUnique: false }
+    ]
+  },
+  {
+    name: 'companies',
+    description: 'Contractor companies, trade partner entities, trade credit limits, and executed NDA credentials',
+    module: 'PORTFOLIO',
+    estimatedRowCount: 48,
+    columns: [
+      { name: 'id', type: 'UUID', isPrimary: true, isNullable: false, description: 'Primary company UUID' },
+      { name: 'name', type: 'VARCHAR(255)', isPrimary: false, isNullable: false, description: 'Trading commercial name' },
+      { name: 'company_type', type: 'VARCHAR(100)', isPrimary: false, isNullable: false, description: 'Contractor discipline (e.g. General Contractor, Joinery)' },
+      { name: 'tax_id', type: 'VARCHAR(100)', isPrimary: false, isNullable: false, description: 'EIN / Tax Registration' },
+      { name: 'contact_person', type: 'VARCHAR(255)', isPrimary: false, isNullable: false, description: 'Primary corporate liaison' },
+      { name: 'email', type: 'VARCHAR(255)', isPrimary: false, isNullable: false, description: 'Corporate contact email' },
+      { name: 'phone', type: 'VARCHAR(50)', isPrimary: false, isNullable: false, description: 'Phone number' },
+      { name: 'trade_credit_limit', type: 'NUMERIC(15,2)', isPrimary: false, isNullable: false, defaultValue: '50000.00', description: 'Underwritten credit line' },
+      { name: 'nda_status', type: 'VARCHAR(50)', isPrimary: false, isNullable: false, defaultValue: 'SIGNED', description: 'Mutual NDA binding status' },
+      { name: 'nda_document_id', type: 'UUID', isPrimary: false, isNullable: true, references: { table: 'legal_documents', column: 'id', onDelete: 'SET NULL' }, description: 'FK to legal document vault' },
+      { name: 'nda_file_name', type: 'VARCHAR(255)', isPrimary: false, isNullable: true, description: 'Uploaded executed NDA file name' },
+      { name: 'nda_crypto_hash', type: 'VARCHAR(255)', isPrimary: false, isNullable: true, description: 'Tamper-proof SHA-256 digital seal' },
+      { name: 'created_at', type: 'TIMESTAMPTZ', isPrimary: false, isNullable: false, defaultValue: 'NOW()', description: 'Registration timestamp' }
+    ],
+    indexes: [
+      { name: 'pk_companies', columns: ['id'], type: 'BTREE', isUnique: true },
+      { name: 'idx_companies_type', columns: ['company_type'], type: 'BTREE', isUnique: false },
+      { name: 'idx_companies_nda', columns: ['nda_status'], type: 'BTREE', isUnique: false }
+    ]
+  },
+  {
+    name: 'legal_documents',
+    description: 'Cryptographically sealed legal agreements, executed contractor NDAs, and AIA covenants vault',
+    module: 'GOVERNANCE',
+    estimatedRowCount: 120,
+    columns: [
+      { name: 'id', type: 'UUID', isPrimary: true, isNullable: false, description: 'Unique legal document UUID' },
+      { name: 'document_number', type: 'VARCHAR(100)', isPrimary: false, isNullable: false, description: 'Unique legal tracking number' },
+      { name: 'title', type: 'VARCHAR(255)', isPrimary: false, isNullable: false, description: 'Document covenant title' },
+      { name: 'category', type: 'VARCHAR(100)', isPrimary: false, isNullable: false, description: 'Classification: NDA, CONTRACT, DRAW_AGREEMENT, LIEN_WAIVER' },
+      { name: 'company_id', type: 'UUID', isPrimary: false, isNullable: true, references: { table: 'companies', column: 'id', onDelete: 'SET NULL' }, description: 'Associated contractor entity FK' },
+      { name: 'project_id', type: 'UUID', isPrimary: false, isNullable: true, references: { table: 'projects', column: 'id', onDelete: 'SET NULL' }, description: 'Associated project FK' },
+      { name: 'status', type: 'VARCHAR(50)', isPrimary: false, isNullable: false, defaultValue: 'SIGNED_SEALED', description: 'Execution and sealing state' },
+      { name: 'file_name', type: 'VARCHAR(255)', isPrimary: false, isNullable: true, description: 'Original uploaded filename' },
+      { name: 'crypto_hash', type: 'VARCHAR(255)', isPrimary: false, isNullable: true, description: 'SHA-256 cryptographic verification checksum' },
+      { name: 'created_at', type: 'TIMESTAMPTZ', isPrimary: false, isNullable: false, defaultValue: 'NOW()', description: 'Uploaded and sealed timestamp' }
+    ],
+    indexes: [
+      { name: 'pk_legal_documents', columns: ['id'], type: 'BTREE', isUnique: true },
+      { name: 'uq_legal_docs_num', columns: ['document_number'], type: 'BTREE', isUnique: true },
+      { name: 'idx_legal_docs_company', columns: ['company_id'], type: 'BTREE', isUnique: false },
+      { name: 'idx_legal_docs_category', columns: ['category'], type: 'BTREE', isUnique: false }
     ]
   }
 ];

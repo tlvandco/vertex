@@ -105,6 +105,13 @@ export interface Company {
   insuranceCOIStatus: InsuranceStatus;
   insuranceExpiryDate?: string;
   ndaStatus: 'SIGNED' | 'PENDING' | 'EXEMPT' | 'EXPIRED';
+  ndaDocumentId?: string;
+  ndaDocumentUrl?: string;
+  ndaFileName?: string;
+  ndaFileSize?: string;
+  ndaSignedAt?: string;
+  ndaSignerName?: string;
+  ndaCryptoHash?: string;
   creditLimit?: number;
   riskTier: RiskTier;
   createdAt: string;
@@ -530,7 +537,8 @@ export type LegalDocumentCategory =
   | 'CHANGE_ORDER_ADDENDUM'
   | 'LIEN_WAIVER'
   | 'PERMIT_PERFECTION'
-  | 'INDEMNITY_INSURANCE';
+  | 'INDEMNITY_INSURANCE'
+  | 'NDA';
 
 export type LegalDocumentStatus = 'DRAFT' | 'PENDING_SIGNATURE' | 'SIGNED_SEALED' | 'ARCHIVED';
 
@@ -551,6 +559,8 @@ export interface LegalDocument {
   documentNumber: string;
   title: string;
   category: LegalDocumentCategory;
+  companyId?: string;
+  companyName?: string;
   projectId: string;
   projectName: string;
   clientId: string;
@@ -561,6 +571,7 @@ export interface LegalDocument {
   uploadedFileUrl?: string;
   fileName?: string;
   fileSize?: string;
+  cryptoHash?: string;
   signers: DocumentSigner[];
   signatureCertificate?: {
     signedByName: string;

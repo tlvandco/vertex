@@ -117,6 +117,7 @@ interface AppContextType {
   addCompany: (company: Omit<Company, 'id' | 'createdAt'>) => Company;
   updateCompany: (id: string, updates: Partial<Company>) => void;
   deleteCompany: (id: string) => void;
+  uploadContractorNDA: (companyId: string, fileData: { fileName: string; fileDataUrl: string; fileSize?: string; signerName?: string }) => Promise<LegalDocument>;
 
   // IAM & 2FA Governance
   grantUserAccess: (
@@ -255,6 +256,7 @@ interface AppContextType {
   createDesignRequest: (req: Omit<DesignRequest, 'id' | 'status' | 'createdAt' | 'generatedConcepts'>) => Promise<DesignRequest>;
   inquiries: Inquiry[];
   submitInquiry: (inq: Omit<Inquiry, 'id' | 'createdAt' | 'status'>) => void;
+  updateInquiryStatus: (id: string, status: 'NEW' | 'CONTACTED' | 'RESOLVED') => void;
   designConcepts: DesignConcept[];
   addDesignConcept: (concept: Omit<DesignConcept, 'id'>) => DesignConcept;
   updateDesignConcept: (id: string, updates: Partial<DesignConcept>) => void;
@@ -1385,32 +1387,276 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Companies & Trade Partner Management ("caranies")
   const addCompany = (companyData: Omit<Company, 'id' | 'createdAt'>): Company => {
+    const compId = 'comp_' + Date.now();
+    const nowIso = new Date().toISOString();
     const newComp: Company = {
       ...companyData,
-      id: 'comp_' + Date.now(),
-      createdAt: new Date().toISOString().split('T')[0]
+      id: compId,
+      createdAt: nowIso.split('T')[0]
     };
+
+    // If an NDA is signed / uploaded during onboarding
+    if (newComp.ndaStatus === 'SIGNED' && (newComp.ndaDocumentUrl || newComp.ndaFileName)) {
+      const docId = newComp.ndaDocumentId || `doc_nda_${Date.now()}`;
+      newComp.ndaDocumentId = docId;
+      if (!newComp.ndaSignedAt) newComp.ndaSignedAt = nowIso;
+      if (!newComp.ndaCryptoHash) {
+        newComp.ndaCryptoHash = 'SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      }
+
+      const ndaLegalDoc: LegalDocument = {
+        id: docId,
+        documentNumber: `NDA-${(newComp.name || 'COMP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${String(Math.floor(100 + Math.random() * 900))}`,
+        title: `Mutual Non-Disclosure Agreement - ${newComp.name}`,
+        category: 'NDA',
+        companyId: newComp.id,
+        companyName: newComp.name,
+        projectId: (newComp.assignedProjectIds && newComp.assignedProjectIds[0]) || 'p1',
+        projectName: 'Master Corporate Covenant',
+        clientId: 'u1',
+        clientName: 'VERTEX Architecture Studio Inc.',
+        effectiveDate: newComp.ndaSignedAt.split('T')[0],
+        status: 'SIGNED_SEALED',
+        version: 'v1.0 Executed Vault Copy',
+        content: `Executed Mutual Non-Disclosure and Proprietary Intellectual Property Agreement for ${newComp.legalName || newComp.name}. All technical specifications, BIM models, and architectural drawings are strictly confidential under California Corporation State Bar ID #VTX-99481.`,
+        uploadedFileUrl: newComp.ndaDocumentUrl,
+        fileName: newComp.ndaFileName || `VERTEX_Executed_NDA_${newComp.name.replace(/\s+/g, '_')}.pdf`,
+        fileSize: newComp.ndaFileSize || '185 KB',
+        cryptoHash: newComp.ndaCryptoHash,
+        signers: [
+          {
+            id: 's_' + Date.now(),
+            name: newComp.ndaSignerName || newComp.primaryContactName || 'Authorized Officer',
+            email: newComp.primaryContactEmail || newComp.email,
+            role: `${newComp.name} Officer`,
+            hasSigned: true,
+            signedAt: newComp.ndaSignedAt,
+            cryptoHash: newComp.ndaCryptoHash,
+            ipAddress: '192.168.1.104'
+          },
+          {
+            id: 's_admin',
+            name: 'Alexander Wright, AIA',
+            email: 'admin@vertex.com',
+            role: 'Principal Architect & Managing Partner',
+            hasSigned: true,
+            signedAt: newComp.ndaSignedAt,
+            cryptoHash: newComp.ndaCryptoHash,
+            ipAddress: '10.0.4.1'
+          }
+        ],
+        signatureCertificate: {
+          signedByName: newComp.ndaSignerName || newComp.primaryContactName || 'Authorized Officer',
+          signedByRole: 'Corporate Representative',
+          signedAt: newComp.ndaSignedAt,
+          cryptoHash: newComp.ndaCryptoHash,
+          ipAddress: '192.168.1.104',
+          certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+        },
+        createdAt: newComp.ndaSignedAt.split('T')[0]
+      };
+
+      setLegalDocuments(prev => [ndaLegalDoc, ...prev]);
+    }
+
     setCompanies(prev => [newComp, ...prev]);
     addToast('success', `Company "${newComp.name}" onboarded into registry`);
+
+    // Server-side DB sync
+    fetch('/api/companies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newComp)
+    }).catch(err => console.warn('Could not sync company to server DB:', err));
+
     logAuditAction(
       'REGISTER_COMPANY',
       'CORPORATE_GOVERNANCE',
       'SUCCESS',
-      `Registered new ${newComp.type} entity: ${newComp.name} (${newComp.registrationNumber || 'No EIN'})`,
-      { resourceType: 'COMPANY', resourceId: newComp.id, payload: { name: newComp.name, type: newComp.type } }
+      `Registered new ${newComp.type} entity: ${newComp.name} (${newComp.registrationNumber || 'No EIN'})${newComp.ndaStatus === 'SIGNED' ? ' [NDA Uploaded & Catalogs in Legal DB Vault]' : ''}`,
+      { resourceType: 'COMPANY', resourceId: newComp.id, payload: { name: newComp.name, type: newComp.type, ndaStatus: newComp.ndaStatus } }
     );
     return newComp;
   };
 
   const updateCompany = (id: string, updates: Partial<Company>) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-    addToast('info', 'Company record updated');
+    setCompanies(prev => prev.map(c => {
+      if (c.id === id) {
+        const updated = { ...c, ...updates };
+        if (updated.ndaStatus === 'SIGNED' && updated.ndaDocumentUrl) {
+          const docId = updated.ndaDocumentId || `doc_nda_${Date.now()}`;
+          updated.ndaDocumentId = docId;
+          const nowIso = new Date().toISOString();
+          if (!updated.ndaSignedAt) updated.ndaSignedAt = nowIso;
+          if (!updated.ndaCryptoHash) {
+            updated.ndaCryptoHash = 'SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+          }
+
+          setLegalDocuments(docs => {
+            const existingIdx = docs.findIndex(d => d.id === docId || (d.companyId === id && d.category === 'NDA'));
+            const signedAtDate = updated.ndaSignedAt || new Date().toISOString();
+            const digestHash = updated.ndaCryptoHash || ('SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join(''));
+            const ndaDocRecord: LegalDocument = {
+              id: docId,
+              documentNumber: `NDA-${(updated.name || 'COMP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${String(Math.floor(100 + Math.random() * 900))}`,
+              title: `Mutual Non-Disclosure Agreement - ${updated.name}`,
+              category: 'NDA',
+              companyId: updated.id,
+              companyName: updated.name,
+              projectId: (updated.assignedProjectIds && updated.assignedProjectIds[0]) || 'p1',
+              projectName: 'Master Corporate Covenant',
+              clientId: 'u1',
+              clientName: 'VERTEX Architecture Studio Inc.',
+              effectiveDate: signedAtDate.split('T')[0],
+              status: 'SIGNED_SEALED',
+              version: 'v1.0 Executed Vault Copy',
+              content: `Mutual Non-Disclosure and Confidentiality Covenant executed with ${updated.legalName || updated.name}.`,
+              uploadedFileUrl: updated.ndaDocumentUrl,
+              fileName: updated.ndaFileName || `VERTEX_Executed_NDA_${updated.name.replace(/\s+/g, '_')}.pdf`,
+              fileSize: updated.ndaFileSize || '185 KB',
+              cryptoHash: digestHash,
+              signers: [
+                {
+                  id: 's_' + Date.now(),
+                  name: updated.ndaSignerName || updated.primaryContactName || 'Authorized Officer',
+                  email: updated.primaryContactEmail || updated.email,
+                  role: `${updated.name} Officer`,
+                  hasSigned: true,
+                  signedAt: signedAtDate,
+                  cryptoHash: digestHash,
+                  ipAddress: '192.168.1.104'
+                }
+              ],
+              signatureCertificate: {
+                signedByName: updated.ndaSignerName || updated.primaryContactName || 'Authorized Officer',
+                signedByRole: 'Corporate Representative',
+                signedAt: signedAtDate,
+                cryptoHash: digestHash,
+                ipAddress: '192.168.1.104',
+                certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+              },
+              createdAt: signedAtDate.split('T')[0]
+            };
+
+            if (existingIdx >= 0) {
+              const copy = [...docs];
+              copy[existingIdx] = { ...copy[existingIdx], ...ndaDocRecord };
+              return copy;
+            }
+            return [ndaDocRecord, ...docs];
+          });
+        }
+        return updated;
+      }
+      return c;
+    }));
+
+    // Server-side DB update
+    fetch(`/api/companies/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    }).catch(err => console.warn('Could not update company on server DB:', err));
+
+    addToast('info', 'Company record updated in database');
     logAuditAction('UPDATE_COMPANY', 'CORPORATE_GOVERNANCE', 'SUCCESS', `Modified company credentials/status for entity ${id}`);
+  };
+
+  const uploadContractorNDA = async (
+    companyId: string,
+    fileData: { fileName: string; fileDataUrl: string; fileSize?: string; signerName?: string }
+  ): Promise<LegalDocument> => {
+    const comp = companies.find(c => c.id === companyId);
+    const nowIso = new Date().toISOString();
+    const cryptoHash = 'SHA256:' + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const docId = `doc_nda_${Date.now()}`;
+
+    const newDoc: LegalDocument = {
+      id: docId,
+      documentNumber: `NDA-${(comp?.name || 'CONTRACTOR').replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}-2026-${String(Math.floor(100 + Math.random() * 900))}`,
+      title: `Mutual Non-Disclosure Agreement - ${comp?.name || 'Contractor'}`,
+      category: 'NDA',
+      companyId: companyId,
+      companyName: comp?.name || 'Contractor Partner',
+      projectId: (comp?.assignedProjectIds && comp.assignedProjectIds[0]) || 'p1',
+      projectName: 'Master Corporate Covenant',
+      clientId: 'u1',
+      clientName: 'VERTEX Architecture Studio Inc.',
+      effectiveDate: nowIso.split('T')[0],
+      status: 'SIGNED_SEALED',
+      version: 'v1.0 Executed Vault Copy',
+      content: `Executed Mutual Non-Disclosure Agreement uploaded directly during contractor onboarding.`,
+      uploadedFileUrl: fileData.fileDataUrl,
+      fileName: fileData.fileName,
+      fileSize: fileData.fileSize || '210 KB',
+      cryptoHash,
+      signers: [
+        {
+          id: 's_' + Date.now(),
+          name: fileData.signerName || comp?.primaryContactName || 'Authorized Signatory',
+          email: comp?.primaryContactEmail || comp?.email || 'contact@partner.com',
+          role: `${comp?.name || 'Contractor'} Officer`,
+          hasSigned: true,
+          signedAt: nowIso,
+          cryptoHash,
+          ipAddress: '192.168.1.104'
+        }
+      ],
+      signatureCertificate: {
+        signedByName: fileData.signerName || comp?.primaryContactName || 'Authorized Signatory',
+        signedByRole: 'Corporate Representative',
+        signedAt: nowIso,
+        cryptoHash,
+        ipAddress: '192.168.1.104',
+        certificateId: `CERT-NDA-${Date.now().toString(36).toUpperCase()}`
+      },
+      createdAt: nowIso.split('T')[0]
+    };
+
+    setLegalDocuments(prev => [newDoc, ...prev]);
+
+    // Also update company record
+    updateCompany(companyId, {
+      ndaStatus: 'SIGNED',
+      ndaDocumentId: docId,
+      ndaDocumentUrl: fileData.fileDataUrl,
+      ndaFileName: fileData.fileName,
+      ndaFileSize: fileData.fileSize || '210 KB',
+      ndaSignedAt: nowIso,
+      ndaSignerName: fileData.signerName || comp?.primaryContactName || 'Authorized Signatory',
+      ndaCryptoHash: cryptoHash
+    });
+
+    // Call server endpoint
+    fetch('/api/upload-nda', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: fileData.fileName,
+        fileData: fileData.fileDataUrl,
+        fileSize: fileData.fileSize,
+        companyName: comp?.name,
+        signerName: fileData.signerName,
+        companyId
+      })
+    }).catch(err => console.warn('Could not post upload-nda to server:', err));
+
+    addToast('success', `Signed NDA uploaded and recorded in database for ${comp?.name || 'contractor'}`);
+    logAuditAction(
+      'UPLOAD_CONTRACTOR_NDA',
+      'LEGAL_VAULT',
+      'SUCCESS',
+      `Uploaded signed NDA for contractor ${comp?.name || companyId} (${fileData.fileName})`,
+      { resourceType: 'LEGAL_DOCUMENT', resourceId: docId, payload: { companyId, fileName: fileData.fileName } }
+    );
+
+    return newDoc;
   };
 
   const deleteCompany = (id: string) => {
     const comp = companies.find(c => c.id === id);
     setCompanies(prev => prev.filter(c => c.id !== id));
+    fetch(`/api/companies/${id}`, { method: 'DELETE' }).catch(err => console.warn('Could not delete company on server DB:', err));
     addToast('info', `Company ${comp?.name || id} decommissioned`);
     logAuditAction('DECOMMISSION_COMPANY', 'CORPORATE_GOVERNANCE', 'SUCCESS', `Decommissioned company ${comp?.name || id}`);
   };
@@ -1683,6 +1929,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAuditAction('SUBMIT_INQUIRY', 'PORTAL', 'SUCCESS', `Received inquiry from ${newInq.name}`);
   };
 
+  const updateInquiryStatus = (id: string, status: 'NEW' | 'CONTACTED' | 'RESOLVED') => {
+    setInquiries(prev => prev.map(inq => inq.id === id ? { ...inq, status } : inq));
+    addToast('info', `Inquiry status updated to ${status}`);
+    logAuditAction('UPDATE_INQUIRY_STATUS', 'PORTAL', 'SUCCESS', `Updated inquiry ${id} to ${status}`);
+  };
+
   const promoteConceptToPortfolio = (conceptId: string, customTitle?: string, collectionName?: string) => {
     setDesignConcepts(prev => prev.map(c => {
       if (c.id === conceptId) {
@@ -1891,6 +2143,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCompany,
         updateCompany,
         deleteCompany,
+        uploadContractorNDA,
         grantUserAccess,
         updateUserRole,
         updateUserPermissions,
@@ -1912,6 +2165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createDesignRequest,
         inquiries,
         submitInquiry,
+        updateInquiryStatus,
         designConcepts,
         addDesignConcept,
         updateDesignConcept,
