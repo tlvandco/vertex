@@ -864,7 +864,7 @@ export const FinancialsView: React.FC = () => {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {isClient && inv.status !== 'PAID' && (
+                          {inv.status !== 'PAID' && (
                             <button
                               onClick={() => {
                                 setPayInvoiceId(inv.id);
@@ -872,9 +872,10 @@ export const FinancialsView: React.FC = () => {
                                 setIsRecordPayOpen(true);
                               }}
                               className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-bold rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 shadow-xs"
+                              title={isClient ? `Pay full balance of $${inv.total.toLocaleString()}` : `Record escrow / payment balance of $${inv.total.toLocaleString()}`}
                             >
                               <CreditCard className="w-3 h-3" />
-                              <span>Pay ${inv.total.toLocaleString()}</span>
+                              <span>{isClient ? `Pay $${inv.total.toLocaleString()}` : `Settle $${inv.total.toLocaleString()}`}</span>
                             </button>
                           )}
                           <button

@@ -420,7 +420,7 @@ export const ProjectDrawer: React.FC = () => {
                               updateMilestone(m.id, { status: newStatus, progress: newProg });
                               if (newStatus === 'COMPLETED') addToast('success', `Milestone "${m.name}" marked complete! 🎉`);
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
                               m.status === 'COMPLETED'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -429,6 +429,42 @@ export const ProjectDrawer: React.FC = () => {
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>{m.status}</span>
                           </button>
+
+                          {/* 1-Click Milestone Billing Bridge */}
+                          {m.status === 'COMPLETED' && currentUser.role !== 'CLIENT' && (
+                            <button
+                              onClick={() => {
+                                const calculatedDraw = Math.round(selectedProject.budget * 0.15); // 15% progress milestone billing draw
+                                addInvoice({
+                                  projectId: selectedProject.id,
+                                  projectName: selectedProject.name,
+                                  clientId: selectedProject.clientId,
+                                  clientName: selectedProject.clientName,
+                                  clientEmail: selectedProject.clientEmail,
+                                  issueDate: new Date().toISOString().split('T')[0],
+                                  dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+                                  amount: calculatedDraw,
+                                  tax: 0,
+                                  total: calculatedDraw,
+                                  status: 'PENDING',
+                                  items: [
+                                    {
+                                      description: `Milestone Sign-Off: ${m.name} (100% Verified Completion)`,
+                                      quantity: 1,
+                                      unitPrice: calculatedDraw,
+                                      total: calculatedDraw
+                                    }
+                                  ]
+                                });
+                                addToast('success', `Progress billing invoice for "${m.name}" ($${calculatedDraw.toLocaleString()}) issued to ${selectedProject.clientName}!`);
+                              }}
+                              className="px-2.5 py-1 bg-[#D4AF37] hover:bg-[#B8860B] text-black font-bold text-[11px] rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Create progress billing invoice directly from this completed milestone"
+                            >
+                              <DollarSign className="w-3 h-3 text-black" />
+                              <span>Bill Milestone</span>
+                            </button>
+                          )}
 
                           {currentUser.role !== 'CLIENT' && (
                             <button
@@ -1104,18 +1140,20 @@ export const ProjectDrawer: React.FC = () => {
 
                       {/* Approval Controls for Admin/Client */}
                       {co.status === 'PENDING' && currentUser.role !== 'DESIGNER' && (
-                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                        <div className="flex justify-end items-center gap-2 pt-2 border-t border-gray-100">
                           <button
                             onClick={() => updateChangeOrderStatus(co.id, 'REJECTED')}
-                            className="px-3 py-1 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50"
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
                           >
                             Decline
                           </button>
                           <button
                             onClick={() => updateChangeOrderStatus(co.id, 'APPROVED')}
-                            className="px-4 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                            className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer transition-all flex items-center gap-1.5"
+                            title={`Approve change order and automatically increase project budget by $${co.budgetImpact.toLocaleString()}`}
                           >
-                            Authorize Approval
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Approve & Apply +${co.budgetImpact.toLocaleString()} to Budget</span>
                           </button>
                         </div>
                       )}

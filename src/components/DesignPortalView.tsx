@@ -96,6 +96,9 @@ export const DesignPortalView: React.FC = () => {
     updateInquiryStatus,
     articles,
     currentUser,
+    setIsCreateProjectOpen,
+    setEditingProjectData,
+    clients,
     addToast
   } = useApp();
 
@@ -1096,7 +1099,31 @@ export const DesignPortalView: React.FC = () => {
                         )}
                         {inq.status === 'CONTACTED' && (
                           <button
-                            onClick={() => updateInquiryStatus(inq.id, 'RESOLVED')}
+                            onClick={() => {
+                              updateInquiryStatus(inq.id, 'RESOLVED');
+                              const matchedClient = clients.find(c => c.email.toLowerCase() === inq.email.toLowerCase());
+                              setEditingProjectData({
+                                id: '',
+                                name: inq.companyName ? `${inq.companyName} Architectural Build` : `${inq.name}'s Residence`,
+                                code: `PRJ-${String(Math.floor(100 + Math.random() * 900))}`,
+                                location: 'Beverly Hills, CA',
+                                budget: 650000,
+                                spent: 0,
+                                status: 'PLANNING',
+                                progress: 5,
+                                description: `Converted from inbound client inquiry. Scope: ${inq.spaceType || 'Full Architectural Scope'}. Requirement Brief: ${inq.message}`,
+                                clientId: matchedClient?.id || 'c1',
+                                clientName: inq.name,
+                                clientEmail: inq.email,
+                                startDate: new Date().toISOString().split('T')[0],
+                                endDate: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
+                                team: [],
+                                coverImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+                                createdAt: new Date().toISOString().split('T')[0]
+                              });
+                              setIsCreateProjectOpen(true);
+                              addToast('success', `Lead converted! Project brief pre-filled for ${inq.name}`);
+                            }}
                             className="px-3 py-1.5 bg-emerald-700 text-white hover:bg-emerald-800 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
                           >
                             <CheckCircle className="w-3.5 h-3.5" />

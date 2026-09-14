@@ -281,10 +281,27 @@ app.get('/api/db/status', (req, res) => {
   });
 });
 
-// Query Plan Analyzer (Simulates EXPLAIN ANALYZE)
+// Query Plan Analyzer (Simulates EXPLAIN ANALYZE) with strict input validation
 app.post('/api/db/query-explain', (req, res) => {
   const { query, table } = req.body;
-  const targetTable = table || 'invoices';
+  
+  // Whitelist allowable tables to prevent SQL injection / invalid reflection
+  const allowedTables = ['invoices', 'projects', 'tasks', 'milestones', 'catalog_items', 'audit_logs', 'users'];
+  const rawTable = typeof table === 'string' ? table.trim().toLowerCase() : 'invoices';
+  const targetTable = allowedTables.includes(rawTable) ? rawTable : 'invoices';
+
+  // Sanitize query string: restrict length and disallow control characters
+  const rawQuery = typeof query === 'string' ? query.substring(0, 500).trim() : `SELECT * FROM ${targetTable} WHERE client_id = $1 LIMIT 50;`;
+  const sanitizedQuery = rawQuery.replace(/[<>&"']/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '"': return '&quot;';
+      case "'": return '&#39;';
+      default: return c;
+    }
+  });
 
   let planType: 'Index Scan' | 'Bitmap Heap Scan' | 'Index Only Scan' | 'Seq Scan' = 'Index Scan';
   let usedIndex = `idx_${targetTable}_client`;
@@ -292,13 +309,13 @@ app.post('/api/db/query-explain', (req, res) => {
   let executionTimeMs = 1.82;
   let rows = 45;
 
-  if (query && query.toLowerCase().includes('like') && !query.toLowerCase().includes('tags')) {
+  if (rawQuery.toLowerCase().includes('like') && !rawQuery.toLowerCase().includes('tags')) {
     planType = 'Seq Scan';
     usedIndex = 'None (Full Table Scan)';
     cost = 148.9;
     executionTimeMs = 14.2;
     rows = 1400;
-  } else if (targetTable === 'catalog_items' && query && query.toLowerCase().includes('tags')) {
+  } else if (targetTable === 'catalog_items' && rawQuery.toLowerCase().includes('tags')) {
     planType = 'Bitmap Heap Scan';
     usedIndex = 'gin_catalog_tags';
     cost = 8.12;
@@ -307,7 +324,7 @@ app.post('/api/db/query-explain', (req, res) => {
   }
 
   res.json({
-    query: query || `SELECT * FROM ${targetTable} WHERE client_id = $1 LIMIT 50;`,
+    query: sanitizedQuery,
     planType,
     targetTable,
     usedIndex,

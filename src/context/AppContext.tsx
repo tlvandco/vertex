@@ -1298,11 +1298,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateChangeOrderStatus = (id: string, status: 'APPROVED' | 'REJECTED', notes?: string) => {
+    // RBAC Security Check: Only Admin, PM, or Client can authorize change orders
+    if (currentUser.role === 'DESIGNER') {
+      addToast('error', 'Unauthorized: Designer role cannot approve or reject change orders.');
+      logAuditAction('SECURITY_ALERT', 'AUTHORIZATION', 'FAILURE', `User ${currentUser.name} (${currentUser.role}) attempted to review CO ${id}`);
+      return;
+    }
+
     setChangeOrders(prev => prev.map(co => {
       if (co.id === id) {
         if (status === 'APPROVED') {
           // Adjust project budget if approved
           setProjects(pList => pList.map(proj => proj.id === co.projectId ? { ...proj, budget: proj.budget + co.budgetImpact } : proj));
+
+          // Also automatically add a corresponding Budget Line for accounting auditability
+          if (co.budgetImpact > 0) {
+            const newBudgetLine: BudgetLine = {
+              id: 'bl_co_' + Date.now(),
+              projectId: co.projectId,
+              category: 'Change Order',
+              itemName: `CO: ${co.title}`,
+              estimated: co.budgetImpact,
+              actual: co.budgetImpact,
+              variance: 0
+            };
+            setBudgetLines(blPrev => [...blPrev, newBudgetLine]);
+          }
         }
         return {
           ...co,

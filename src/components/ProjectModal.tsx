@@ -97,7 +97,7 @@ export const ProjectModal: React.FC = () => {
 
     const selectedClient = clients.find(c => c.id === clientId) || clients[0];
 
-    if (editingProjectData) {
+    if (editingProjectData && editingProjectData.id) {
       updateProject(editingProjectData.id, {
         name,
         location,
