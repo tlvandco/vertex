@@ -4,6 +4,7 @@ import fs from 'fs';
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
@@ -145,6 +146,20 @@ app.use(compression({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Production rate limiting on API endpoints (prevents compute exhaustion on free tiers)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per 15-minute window
+  standardHeaders: true, // Return standard RateLimit-* headers
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/api/health') || req.path === '/api/metrics',
+  message: {
+    status: 429,
+    message: 'Too many requests from this IP, please try again in a few minutes.'
+  }
+});
+app.use('/api/', apiLimiter);
 
 // Request telemetry counter & tracing
 app.use((req, res, next) => {

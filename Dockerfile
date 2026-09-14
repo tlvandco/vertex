@@ -1,45 +1,40 @@
-# Stage 1: Build Stage
-FROM gradle:8.14-jdk24 AS builder
+# Multi-stage production Dockerfile for VERTEX Studio
+# Optimized for free container hosts: Render, Fly.io, Railway, Google Cloud Run
 
+# Stage 1: Build stage
+FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy gradle configuration files
-COPY build.gradle .
-COPY settings.gradle .
-COPY gradlew .
-COPY gradlew.bat .
-COPY gradle/ gradle/
+# Install build dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Copy source code
-COPY src/ src/
+# Copy source code and build production assets
+COPY . .
+RUN npm run build
 
-# Build the application
-RUN gradle build -x test --no-daemon
-
-# Stage 2: Runtime Stage
-FROM eclipse-temurin:24-jdk-alpine
-
+# Stage 2: Runtime stage
+FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Copy the built JAR from the builder stage
-COPY --from=builder /app/build/libs/vertex-projects-2.0.0.jar /app/vertex-projects.jar
+# Install production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Copy compiled SPA bundle and bundled server.cjs
+COPY --from=builder /app/dist ./dist
 
-# Expose the default port
-EXPOSE 8080
+# Create persistent data volume directory
+RUN mkdir -p /app/data && chown -R node:node /app
+USER node
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/api/v1/health || exit 1
+EXPOSE 3000
 
-# Set JVM options for optimal performance
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+# Container healthcheck for Render / Cloud Run / Kubernetes
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/vertex-projects.jar"]
-
+CMD ["node", "dist/server.cjs"]

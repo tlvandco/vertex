@@ -1,70 +1,7 @@
-# Build artifacts
-build/
-.gradle/
-dist/
-out/
-target/
-*.jar
-*.war
-*.zip
-
-# IDE files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.#*
-*.iml
-.classpath
-.project
-.settings/
-
-# OS files
-.DS_Store
-.AppleDouble
-.AppleDB
-Thumbs.db
-.windows
-
-# Version control
-.git/
-.gitignore
-.gitattributes
-.github/
-.gitlab-ci.yml
-.travis.yml
-
-# Documentation
-*.md
-docs/
-README.md
-CHANGELOG.md
-LICENSE
-
-# Node modules (frontend)
 node_modules/
-npm-debug.log
-
-# Environment files
+dist/
+.git/
 .env
 .env.local
-.env.*.local
-
-# Temporary files
-tmp/
-temp/
 *.log
-logs/
-
-# Docker
-docker-compose.override.yml
-Dockerfile.dev
-
-# Other
-.editorconfig
-.prettierrc
-.eslintrc
-tsconfig.json
-webpack.config.js
-
+.DS_Store
