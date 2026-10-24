@@ -862,13 +862,13 @@ export const FinancialsView: React.FC = () => {
       )}
 
       {/* Tabs Switcher */}
-      <div className="flex items-center gap-2 border-b border-gray-200 pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab('invoices')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'invoices'
-              ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-              : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
@@ -879,8 +879,8 @@ export const FinancialsView: React.FC = () => {
           onClick={() => setActiveTab('pos')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'pos'
-              ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-              : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
@@ -891,8 +891,8 @@ export const FinancialsView: React.FC = () => {
           onClick={() => setActiveTab('legal')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'legal'
-              ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-              : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
           <FileCheck2 className="w-3.5 h-3.5" />
@@ -903,8 +903,8 @@ export const FinancialsView: React.FC = () => {
           onClick={() => setActiveTab('payments')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
             activeTab === 'payments'
-              ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-              : 'text-gray-600 hover:bg-gray-100'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5" />
@@ -916,8 +916,8 @@ export const FinancialsView: React.FC = () => {
             onClick={() => setActiveTab('expenses')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'expenses'
-                ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
@@ -1059,7 +1059,7 @@ export const FinancialsView: React.FC = () => {
                         setBarcodeItemToGenerate(null);
                         setIsScannerModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37] hover:bg-amber-400 text-black text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
                       title="Scan Barcode or QR Code to Fetch & Insert into POS"
                     >
                       <Scan className="w-3.5 h-3.5" />
@@ -1069,9 +1069,9 @@ export const FinancialsView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsAddCatalogItemOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2C2416] hover:bg-black text-[#D4AF37] text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-98"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
                       <span>Add Item</span>
                     </button>
 
@@ -1079,7 +1079,7 @@ export const FinancialsView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCatalogGridDensity(d => d === 'comfortable' ? 'compact' : 'comfortable')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer border border-gray-200"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all shadow-xs cursor-pointer border border-slate-200"
                       title={catalogGridDensity === 'compact' ? "Switch to Comfortable Tiles" : "Switch to Compact Density"}
                     >
                       <Grid className="w-3.5 h-3.5" />
@@ -1090,10 +1090,10 @@ export const FinancialsView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPosRegisterCollapsed(!posRegisterCollapsed)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer border ${
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer border ${
                         posRegisterCollapsed
-                          ? 'bg-[#2C2416] text-[#D4AF37] border-[#2C2416]'
-                          : 'bg-amber-50 hover:bg-amber-100 text-[#8B7355] border-amber-200'
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                       }`}
                       title={posRegisterCollapsed ? "Show Register Terminal" : "Collapse Register for Full-Width Catalog View"}
                     >
@@ -1105,10 +1105,10 @@ export const FinancialsView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsPosMaximized(!isPosMaximized)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer border ${
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer border ${
                         isPosMaximized
-                          ? 'bg-[#2C2416] text-[#D4AF37] border-[#2C2416]'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                       }`}
                       title={isPosMaximized ? 'Restore POS Window' : 'Maximize POS Register Fullscreen'}
                     >
@@ -1333,16 +1333,16 @@ export const FinancialsView: React.FC = () => {
                         onClick={() => setSelectedCatalogCategory(cat)}
                         className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-[#2C2416] text-[#D4AF37] shadow-2xs font-bold'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80'
+                            ? 'bg-slate-900 text-white shadow-2xs font-bold'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                         }`}
                       >
                         <span>{cat === 'ALL' ? 'All Catalog Items' : cat}</span>
                         <span
                           className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${
                             isSelected
-                              ? 'bg-[#D4AF37] text-black font-bold'
-                              : 'bg-gray-200 text-gray-600'
+                              ? 'bg-amber-400 text-slate-950 font-bold'
+                              : 'bg-slate-200 text-slate-600'
                           }`}
                         >
                           {count}
@@ -1355,14 +1355,14 @@ export const FinancialsView: React.FC = () => {
                 {/* CATALOG ITEMS GRID - Space Optimized with 3-5 Columns on Desktop */}
                 {filteredCatalogItems.length > 0 ? (
                   <div
-                    className={`grid gap-3 transition-all duration-300 ${
+                    className={`grid gap-3.5 transition-all duration-300 ${
                       posRegisterCollapsed
                         ? catalogGridDensity === 'compact'
-                          ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-                          : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5'
+                          ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                          : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
                         : catalogGridDensity === 'compact'
-                        ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
-                        : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4'
+                        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
                     }`}
                   >
                     {filteredCatalogItems.map(item => {
@@ -1461,78 +1461,85 @@ export const FinancialsView: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Card Footer Actions */}
-                          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100">
-                            <div>
-                              <span className="font-mono font-bold text-sm text-[#2C2416] block">
-                                ${item.price.toLocaleString()}
-                              </span>
-                              <span className="text-[9px] text-gray-400 block -mt-0.5">
-                                {item.unit || 'Fixed Fee'}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              {/* Quick Stock Controls */}
-                              <div className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-lg p-0.5" title="Quick Inventory Adjustment">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateCatalogItemStock(item.id, Math.max(0, (item.inventoryCount ?? 10) - 1));
-                                  }}
-                                  className="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-200 rounded text-[10px] font-bold cursor-pointer"
-                                  title="Reduce stock by 1"
-                                >
-                                  -
-                                </button>
-                                <span className="text-[9px] font-mono font-bold px-1 text-gray-700 min-w-4 text-center">
-                                  {item.inventoryCount ?? 10}
+                          {/* Card Footer Actions - Clean 2-Tier Layout to Eliminate Overlap */}
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <span className="font-mono font-bold text-sm text-slate-900 block">
+                                  ${item.price.toLocaleString()}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateCatalogItemStock(item.id, (item.inventoryCount ?? 10) + 1);
-                                  }}
-                                  className="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-200 rounded text-[10px] font-bold cursor-pointer"
-                                  title="Add 1 to stock"
-                                >
-                                  +
-                                </button>
+                                <span className="text-[9px] text-slate-400 block -mt-0.5">
+                                  {item.unit || 'Fixed Fee'}
+                                </span>
                               </div>
 
-                              {/* Generate & Print Barcode / QR Label */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBarcodeItemToGenerate(item);
-                                  setIsScannerModalOpen(true);
-                                }}
-                                className="p-1 text-gray-400 hover:text-[#D4AF37] hover:bg-black rounded-lg transition-colors cursor-pointer"
-                                title="Generate Barcode & QR Code Label"
-                              >
-                                <Barcode className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {/* Quick Stock Controls */}
+                                <div className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5" title="Quick Inventory Adjustment">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateCatalogItemStock(item.id, Math.max(0, (item.inventoryCount ?? 10) - 1));
+                                    }}
+                                    className="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-black hover:bg-slate-200 rounded text-[10px] font-bold cursor-pointer"
+                                    title="Reduce stock by 1"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-[9px] font-mono font-bold px-1 text-slate-700 min-w-4 text-center">
+                                    {item.inventoryCount ?? 10}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateCatalogItemStock(item.id, (item.inventoryCount ?? 10) + 1);
+                                    }}
+                                    className="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-black hover:bg-slate-200 rounded text-[10px] font-bold cursor-pointer"
+                                    title="Add 1 to stock"
+                                  >
+                                    +
+                                  </button>
+                                </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleOpenUseItemModal(item)}
-                                className="text-[10px] font-semibold text-gray-600 hover:text-black bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
-                                title="Use in project budget or client invoice"
-                              >
-                                Use...
-                              </button>
-                              
-                              <button
-                                type="button"
-                                onClick={() => handleAddToCart(item)}
-                                className="text-[10px] font-bold text-[#8B7355] bg-white group-hover:bg-[#2C2416] group-hover:text-[#D4AF37] px-2.5 py-1 rounded-lg border border-amber-200 group-hover:border-[#2C2416] transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>{inCartCount > 0 ? 'Add Another' : 'Add to POS'}</span>
-                              </button>
+                                {/* Generate & Print Barcode / QR Label */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBarcodeItemToGenerate(item);
+                                    setIsScannerModalOpen(true);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Generate Barcode & QR Code Label"
+                                >
+                                  <Barcode className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenUseItemModal(item)}
+                                  className="text-[10px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                                  title="Use in project budget or client invoice"
+                                >
+                                  Use
+                                </button>
+                              </div>
                             </div>
+
+                            {/* Full-Width Prominent Add to POS Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleAddToCart(item)}
+                              className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs ${
+                                inCartCount > 0
+                                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold ring-1 ring-amber-400'
+                                  : 'bg-slate-900 hover:bg-black text-white hover:text-amber-300'
+                              }`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>{inCartCount > 0 ? `In Register (${inCartCount}) · Add Another` : 'Add to POS'}</span>
+                            </button>
                           </div>
                         </div>
                       );
