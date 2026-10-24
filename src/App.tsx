@@ -7,6 +7,8 @@ import { ProjectModal } from './components/ProjectModal';
 import { ChatDrawer } from './components/ChatDrawer';
 import { ToastContainer } from './components/ToastContainer';
 import { ClientOnboardingGate } from './components/ClientOnboardingGate';
+import { TwoFactorChallengeModal } from './components/TwoFactorChallengeModal';
+import { TwoFactorEnrollmentModal } from './components/TwoFactorEnrollmentModal';
 import { Loader2, Lock, ArrowRight, ShieldAlert, Shield } from 'lucide-react';
 import { hasViewAccess, getRolePermissions } from './utils/rbac';
 
@@ -146,12 +148,12 @@ const MainLayout: React.FC = () => {
   const isViewPermitted = hasViewAccess(currentUser.role, activeView);
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#2C2416] flex flex-col font-sans selection:bg-[#D4AF37]/30">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-400/20">
       {/* Top Navbar */}
       <Navbar />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <ErrorBoundary fallbackTitle="Module Render Quarantine">
           {isSuspended ? (
             <SuspendedAccountGate />
@@ -187,16 +189,18 @@ const MainLayout: React.FC = () => {
       <ProjectModal />
       <ChatDrawer />
       <ToastContainer />
+      <TwoFactorChallengeModal />
+      <TwoFactorEnrollmentModal />
 
-      {/* Global Luxury Footer */}
-      <footer className="border-t border-gray-200/80 bg-white/60 py-6 mt-12 text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      {/* Modern High-Density Footer */}
+      <footer className="border-t border-slate-200 bg-white/80 py-4 mt-8 text-center text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-serif font-bold text-[#2C2416]">VERTEX</span>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Enterprise Architecture Studio</span>
+            <span className="font-bold tracking-tight text-slate-900">VERTEX</span>
+            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Architectural Studio v2.8</span>
           </div>
-          <p className="text-gray-400">
-            High-scale distributed project governance, milestone tracking, and interior design portal.
+          <p className="text-slate-400 text-[11px]">
+            Zero-Trust IAM · Distributed Milestone Ledgers · Multi-Factor OTP Governance
           </p>
         </div>
       </footer>

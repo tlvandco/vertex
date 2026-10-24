@@ -72,9 +72,9 @@ export const ClientOnboardingGate: React.FC = () => {
 
       addToast(
         'info',
-        `One-Time Passcode (${code}) dispatched via ${deliveryMethod === 'EMAIL' ? 'Encrypted Mail' : 'SMS Gateway'} to ${target}`
+        `One-Time Passcode (${code}) dispatched via ${deliveryMethod === 'EMAIL' ? 'Encrypted Email' : 'SMS Gateway'} to ${target}`
       );
-    }, 900);
+    }, 800);
   };
 
   // Step 2: Verify OTP and complete onboarding
@@ -90,7 +90,7 @@ export const ClientOnboardingGate: React.FC = () => {
       onboardClient(currentUser.id);
       setIsVerifying(false);
       addToast('success', 'Tenant identity verified. Welcome to your private VERTEX workspace.');
-    }, 800);
+    }, 700);
   };
 
   // Resend OTP
@@ -107,99 +107,97 @@ export const ClientOnboardingGate: React.FC = () => {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-10 px-4">
-      <div className="max-w-2xl w-full bg-white rounded-3xl border border-amber-200/80 shadow-2xl overflow-hidden p-8 sm:p-10 space-y-8 animate-in zoom-in-95">
-        {/* Header Badge */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex p-3 rounded-2xl bg-amber-50 text-[#8B7355] border border-amber-200 shadow-xs mb-1">
-            <Lock className="w-8 h-8 text-[#D4AF37]" />
+      <div className="max-w-2xl w-full bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-8 sm:p-10 space-y-6 animate-in zoom-in-95">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-3 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 mb-1">
+            <Lock className="w-6 h-6 text-amber-600" />
           </div>
-          <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100/80 text-amber-900 border border-amber-200 uppercase tracking-wider">
-            Zero-Trust Client Authentication
-          </div>
-          <h2 className="text-3xl font-serif font-bold text-[#2C2416]">
-            Welcome to VERTEX
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Client Authentication & Estate Onboarding
           </h2>
-          <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
-            Your client profile is currently <strong className="text-amber-700">Pending Verification</strong>. Authenticate via One-Time Passcode (OTP) to unlock your private architectural dashboard, project timelines, and escrow billing.
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Your client profile is currently <strong className="text-amber-700">Pending Verification</strong>.
+            Authenticate via One-Time Passcode (Email or SMS) to unlock your private architectural dashboard, project drawings, and escrow statements.
           </p>
         </div>
 
-        {/* Isolation Badges */}
+        {/* Feature Points */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-          <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-3.5">
-            <ShieldAlert className="w-4 h-4 text-amber-600 mb-1.5" />
-            <h4 className="text-xs font-bold text-gray-900">Isolated Tenant Ledger</h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Strict role separation ensures you only access your authorized estate records.</p>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+            <ShieldAlert className="w-4 h-4 text-amber-600 mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">Isolated Tenant Ledger</h4>
+            <p className="text-[10px] text-slate-500 mt-0.5">Strict role separation ensures you only access your authorized estate records.</p>
           </div>
-          <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-3.5">
-            <FileCheck2 className="w-4 h-4 text-amber-600 mb-1.5" />
-            <h4 className="text-xs font-bold text-gray-900">Escrow Transparency</h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Real-time payment settlements, invoices, and design reviews.</p>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+            <FileCheck2 className="w-4 h-4 text-amber-600 mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">Escrow Transparency</h4>
+            <p className="text-[10px] text-slate-500 mt-0.5">Real-time payment settlements, invoices, and design reviews.</p>
           </div>
-          <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-3.5">
-            <Clock className="w-4 h-4 text-amber-600 mb-1.5" />
-            <h4 className="text-xs font-bold text-gray-900">Forensic Audit Trail</h4>
-            <p className="text-[10px] text-gray-500 mt-0.5">Every milestone sign-off and specification is cryptographically logged.</p>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+            <Clock className="w-4 h-4 text-amber-600 mb-1" />
+            <h4 className="text-xs font-bold text-slate-900">Forensic Audit Trail</h4>
+            <p className="text-[10px] text-slate-500 mt-0.5">Every milestone sign-off and specification is cryptographically logged.</p>
           </div>
         </div>
 
         {/* STEP 1: VERIFICATION & DELIVERY CHANNEL SELECTION */}
         {step === 'DETAILS' && (
-          <form onSubmit={handleRequestOtp} className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleRequestOtp} className="space-y-4 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Client Representative Name
                 </label>
                 <input
                   type="text"
                   disabled
                   value={currentUser.name}
-                  className="w-full px-3.5 py-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed font-medium"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed font-medium"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Verified Account Email
                 </label>
                 <input
                   type="email"
                   disabled
                   value={currentUser.email}
-                  className="w-full px-3.5 py-2.5 text-xs bg-gray-50 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed font-medium"
+                  className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed font-medium"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Estate / Organization *
                 </label>
                 <div className="relative">
-                  <Building className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Building className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="e.g. Sterling Heritage Trust"
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] outline-none font-medium"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-medium"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Contact Mobile Number *
                 </label>
                 <div className="relative">
-                  <Phone className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
                     required
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2.5 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D4AF37] outline-none font-medium"
+                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 bg-slate-50 focus:bg-white rounded-xl focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-medium"
                   />
                 </div>
               </div>
@@ -207,24 +205,24 @@ export const ClientOnboardingGate: React.FC = () => {
 
             {/* OTP Delivery Preference Selector */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">
-                Select OTP Verification Delivery Channel:
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
+                Select One-Time Passcode (OTP) Delivery Channel:
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
                   onClick={() => setDeliveryMethod('EMAIL')}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${
                     deliveryMethod === 'EMAIL'
-                      ? 'border-[#D4AF37] bg-amber-50/70 shadow-xs ring-1 ring-[#D4AF37]'
-                      : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+                      ? 'border-amber-400 bg-amber-50/70 shadow-xs ring-1 ring-amber-400'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-amber-800 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-amber-700 shrink-0">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs text-gray-900">Email OTP</h5>
-                    <p className="text-[10px] text-gray-500 truncate max-w-[170px]">{currentUser.email}</p>
+                    <h5 className="font-bold text-xs text-slate-900">Email OTP</h5>
+                    <p className="text-[10px] text-slate-500 truncate max-w-[170px]">{currentUser.email}</p>
                   </div>
                 </div>
 
@@ -232,40 +230,40 @@ export const ClientOnboardingGate: React.FC = () => {
                   onClick={() => setDeliveryMethod('SMS')}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${
                     deliveryMethod === 'SMS'
-                      ? 'border-[#D4AF37] bg-amber-50/70 shadow-xs ring-1 ring-[#D4AF37]'
-                      : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+                      ? 'border-amber-400 bg-amber-50/70 shadow-xs ring-1 ring-amber-400'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-amber-800 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-amber-700 shrink-0">
                     <Smartphone className="w-4 h-4" />
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs text-gray-900">Mobile SMS OTP</h5>
-                    <p className="text-[10px] text-gray-500">{phone || '+1 (310) 880-9281'}</p>
+                    <h5 className="font-bold text-xs text-slate-900">Mobile SMS OTP</h5>
+                    <p className="text-[10px] text-slate-500">{phone || '+1 (310) 880-9281'}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer">
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+              <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={agreementChecked}
                   onChange={e => setAgreementChecked(e.target.checked)}
-                  className="mt-0.5 rounded text-[#D4AF37] focus:ring-[#D4AF37] h-4 w-4"
+                  className="mt-0.5 rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
                 />
-                <span className="text-xs text-gray-600 leading-snug">
-                  I agree to the <strong className="text-gray-900">VERTEX Master Architectural Governance Terms & Confidentiality Protocol</strong>, authorizing encrypted document exchange and escrow milestone approvals.
+                <span className="text-xs text-slate-600 leading-snug">
+                  I agree to the <strong className="text-slate-900">VERTEX Master Architectural Governance Terms</strong>, authorizing encrypted document exchange and escrow milestone approvals.
                 </span>
               </label>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => switchRole('ADMIN')}
-                className="text-xs text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer"
+                className="text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer"
               >
                 Switch back to Principal Architect (Admin)
               </button>
@@ -273,10 +271,13 @@ export const ClientOnboardingGate: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSendingOtp}
-                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-black text-amber-400 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isSendingOtp ? (
-                  <span>Dispatching OTP Security Code...</span>
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                    <span>Dispatching OTP Security Code...</span>
+                  </>
                 ) : (
                   <>
                     <span>Send Verification OTP Code</span>
@@ -290,20 +291,20 @@ export const ClientOnboardingGate: React.FC = () => {
 
         {/* STEP 2: ENTER OTP CODE */}
         {step === 'OTP' && (
-          <form onSubmit={handleVerifyOtp} className="space-y-6 pt-2 animate-in fade-in duration-200">
+          <form onSubmit={handleVerifyOtp} className="space-y-5 pt-1 animate-in fade-in duration-200">
             {/* Live Simulated OTP Notification Banner */}
-            <div className="p-4 bg-amber-50/80 border border-amber-300 rounded-2xl space-y-2">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-[#D4AF37]" />
+                  <KeyRound className="w-4 h-4 text-amber-600" />
                   <span className="text-xs font-bold text-amber-950">
-                    Security Token Dispatched ({deliveryMethod === 'EMAIL' ? 'Email' : 'SMS'})
+                    Security Passcode Dispatched ({deliveryMethod === 'EMAIL' ? 'Email' : 'SMS'})
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setEnteredOtp(generatedOtp)}
-                  className="text-[11px] font-bold text-[#D4AF37] hover:underline bg-white px-2 py-0.5 rounded border border-amber-200 shadow-2xs cursor-pointer"
+                  className="text-[11px] font-bold text-amber-800 hover:underline bg-white px-2.5 py-1 rounded-lg border border-amber-300 shadow-2xs cursor-pointer"
                 >
                   Auto-Fill ({generatedOtp})
                 </button>
@@ -314,7 +315,7 @@ export const ClientOnboardingGate: React.FC = () => {
             </div>
 
             <div className="space-y-2 text-center">
-              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Enter 6-Digit One-Time Passcode
               </label>
               <div className="max-w-xs mx-auto">
@@ -326,22 +327,22 @@ export const ClientOnboardingGate: React.FC = () => {
                   value={enteredOtp}
                   onChange={e => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
-                  className="w-full text-center text-3xl font-mono font-bold tracking-[0.4em] py-3 bg-gray-50 border-2 border-gray-300 focus:border-[#D4AF37] rounded-2xl outline-none focus:bg-white transition-all shadow-inner"
+                  className="w-full text-center text-3xl font-mono font-bold tracking-[0.4em] py-3 bg-slate-50 border-2 border-slate-200 focus:border-amber-500 rounded-2xl outline-none focus:bg-white transition-all shadow-inner text-slate-900"
                 />
               </div>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-slate-500">
                 Code expires in 10 minutes. For testing, enter the code above or <strong className="font-mono">123456</strong>.
               </p>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-xs">
-              <span className="text-gray-500">Didn't receive the code?</span>
+              <span className="text-slate-500">Didn't receive the code?</span>
               <button
                 type="button"
                 disabled={resendCountdown > 0}
                 onClick={handleResendOtp}
                 className={`font-bold flex items-center gap-1 cursor-pointer ${
-                  resendCountdown > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-[#D4AF37] hover:underline'
+                  resendCountdown > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-amber-600 hover:underline'
                 }`}
               >
                 <RefreshCw className={`w-3 h-3 ${resendCountdown > 0 ? '' : 'animate-spin'}`} />
@@ -349,11 +350,11 @@ export const ClientOnboardingGate: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setStep('DETAILS')}
-                className="text-xs text-gray-500 hover:text-gray-800 font-medium cursor-pointer"
+                className="text-xs text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
               >
                 &larr; Change Email or Phone Number
               </button>
@@ -361,14 +362,14 @@ export const ClientOnboardingGate: React.FC = () => {
               <button
                 type="submit"
                 disabled={isVerifying || enteredOtp.length < 6}
-                className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-black text-amber-400 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isVerifying ? (
                   <span>Verifying Cryptographic Passcode...</span>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Verify Code & Enter VERTEX</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Verify Code & Enter Workspace</span>
                   </>
                 )}
               </button>

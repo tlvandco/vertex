@@ -1682,6 +1682,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '3 Business Days',
     tags: ['Marble', 'Quarry', 'Inspection', 'Stone', 'Italy'],
     isCustom: false,
+    qrCode: 'QR-PRC-SLAB-01',
+    inventoryCount: 18,
+    minStockLevel: 5,
+    warehouseLocation: 'Carrara Depot & Beverly Vault A-1',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-10'
   },
   {
@@ -1695,6 +1700,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '24 Hours',
     tags: ['VR', '3D Render', 'Unreal Engine', 'Simulation', 'Walkthrough'],
     isCustom: false,
+    qrCode: 'QR-DSN-VR-02',
+    inventoryCount: 45,
+    minStockLevel: 10,
+    warehouseLocation: 'Cloud Spatial Server Cluster West',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-12'
   },
   {
@@ -1708,6 +1718,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '5 Business Days',
     tags: ['Joinery', 'Wood', 'Cabinetry', 'Samples', 'Hardware'],
     isCustom: false,
+    qrCode: 'QR-FAB-JOIN-03',
+    inventoryCount: 8,
+    minStockLevel: 4,
+    warehouseLocation: 'Beverly Hills Sample Room Cabinet B-2',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-15'
   },
   {
@@ -1721,6 +1736,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '1-2 Weeks',
     tags: ['Permits', 'City Planning', 'Expedited', 'Zoning', 'Legal'],
     isCustom: false,
+    qrCode: 'QR-MUN-PRMT-04',
+    inventoryCount: 15,
+    minStockLevel: 3,
+    warehouseLocation: 'Downtown LA Civic Document Locker',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-18'
   },
   {
@@ -1734,6 +1754,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '4 Business Days',
     tags: ['Acoustics', 'Soundproofing', 'PE Stamp', 'HVAC', 'Engineering'],
     isCustom: false,
+    qrCode: 'QR-ENG-ACOU-05',
+    inventoryCount: 12,
+    minStockLevel: 2,
+    warehouseLocation: 'Engineering Vault Digital Archive',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-20'
   },
   {
@@ -1747,6 +1772,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: 'Immediate',
     tags: ['Escrow', 'Finance', 'Retainer', 'Deposit', 'Draw'],
     isCustom: false,
+    qrCode: 'QR-FIN-ESCR-06',
+    inventoryCount: 50,
+    minStockLevel: 5,
+    warehouseLocation: 'Institutional Escrow Vault Fedwire',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-22'
   },
   {
@@ -1760,6 +1790,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '3 Business Days',
     tags: ['Lighting', 'DALI', 'Electrical', 'Photometry', 'Lux'],
     isCustom: false,
+    qrCode: 'QR-DSN-LUX-07',
+    inventoryCount: 6,
+    minStockLevel: 2,
+    warehouseLocation: 'Design Studio Lab Rack C',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-25'
   },
   {
@@ -1773,6 +1808,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '2 Business Days',
     tags: ['Drone', 'LiDAR', 'Site Survey', 'Terrain', 'Point Cloud'],
     isCustom: false,
+    qrCode: 'QR-SUR-DRON-08',
+    inventoryCount: 4,
+    minStockLevel: 1,
+    warehouseLocation: 'Field Operations Van 01 & 02',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-11-28'
   },
   {
@@ -1786,6 +1826,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '1 Week',
     tags: ['Marble', 'Calacatta', 'Bookmatch', 'Luxury', 'Stone'],
     isCustom: false,
+    qrCode: 'QR-PRC-CALA-09',
+    inventoryCount: 3,
+    minStockLevel: 2,
+    warehouseLocation: 'Port of Long Beach Bonded Stone Yard',
+    inventoryStatus: 'LOW_STOCK',
     createdAt: '2025-12-01'
   },
   {
@@ -1799,6 +1844,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '5 Business Days',
     tags: ['Structural', 'Cantilever', 'Engineering', 'Stress Model'],
     isCustom: false,
+    qrCode: 'QR-ENG-LOAD-10',
+    inventoryCount: 9,
+    minStockLevel: 2,
+    warehouseLocation: 'Engineering Vault Digital Archive',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-12-05'
   },
   {
@@ -1812,6 +1862,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '2 Weeks',
     tags: ['Bronze', 'Patina', 'Hardware', 'Fabrication', 'Finishes'],
     isCustom: false,
+    qrCode: 'QR-FAB-BRNZ-11',
+    inventoryCount: 14,
+    minStockLevel: 4,
+    warehouseLocation: 'Beverly Hills Sample Room Drawer 7',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-12-10'
   },
   {
@@ -1825,6 +1880,11 @@ export const SEED_CATALOG_ITEMS: CatalogItem[] = [
     leadTime: '3 Business Days',
     tags: ['Wine Cellar', 'HVAC', 'Cleanroom', 'Climate Control'],
     isCustom: false,
+    qrCode: 'QR-ENG-HVAC-12',
+    inventoryCount: 7,
+    minStockLevel: 2,
+    warehouseLocation: 'Engineering Vault Digital Archive',
+    inventoryStatus: 'IN_STOCK',
     createdAt: '2025-12-15'
   }
 ];

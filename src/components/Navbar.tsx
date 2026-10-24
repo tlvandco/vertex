@@ -16,18 +16,22 @@ import {
   Shield,
   Palette,
   Server,
-  Radio,
-  Lock
+  Lock,
+  UserPlus,
+  UserCheck,
+  ShieldCheck,
+  CheckCircle2,
+  Search
 } from 'lucide-react';
 import { ClusterHealthModal } from './ClusterHealthModal';
+import { UserOnboardingModal } from './UserOnboardingModal';
 import { apiClient } from '../services/apiClient';
-import { AppViewId, hasViewAccess, getRolePermissions, ROLE_PERMISSIONS } from '../utils/rbac';
+import { AppViewId, hasViewAccess, getRolePermissions } from '../utils/rbac';
 
 export const Navbar: React.FC = () => {
   const {
     currentUser,
     switchRole,
-    users,
     activeView,
     setActiveView,
     channels,
@@ -40,8 +44,10 @@ export const Navbar: React.FC = () => {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isRolePickerOpen, setIsRolePickerOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [onboardingInitialType, setOnboardingInitialType] = useState<'CLIENT' | 'STAFF'>('STAFF');
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
-  const [latency, setLatency] = useState(14);
+  const [latency, setLatency] = useState(12);
 
   const rolePermissions = getRolePermissions(currentUser.role);
 
@@ -58,48 +64,54 @@ export const Navbar: React.FC = () => {
       setLatency(apiClient.getAverageLatency());
     };
     probe();
-    const timer = setInterval(probe, 10000);
+    const timer = setInterval(probe, 12000);
     return () => clearInterval(timer);
   }, []);
 
   const totalUnread = channels.reduce((sum, c) => sum + c.unreadCount, 0);
 
-  const roles: { role: UserRole; label: string; badgeColor: string; summary: string }[] = [
+  const roles: { role: UserRole; label: string; badgeColor: string; isStaff: boolean; summary: string }[] = [
     {
       role: 'ADMIN',
-      label: 'Admin (Alexander Wright)',
-      badgeColor: 'bg-red-100 text-red-800 border-red-200',
-      summary: 'All modules, analytics audit trail, & firm management'
+      label: 'Alexander Wright (Admin)',
+      badgeColor: 'bg-red-50 text-red-700 border-red-200',
+      isStaff: true,
+      summary: 'Executive governance, security IAM & system analytics'
     },
     {
       role: 'PROJECT_MANAGER',
-      label: 'Project Manager (Sophia Chen)',
-      badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-      summary: 'Projects, milestones, team allocation, budget oversight'
+      label: 'Sophia Chen (Project Mgr)',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      isStaff: true,
+      summary: 'Project delivery, task allocation & budget oversight'
     },
     {
       role: 'DESIGNER',
-      label: 'Designer (Marcus Vance)',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-      summary: 'Design studio, 3D renderings, moodboards, FF&E specs'
-    },
-    {
-      role: 'CLIENT',
-      label: 'Client (Eleanor Sterling)',
-      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      summary: 'Isolated estate dashboard, private ledger & approvals'
+      label: 'Marcus Vance (Lead Architect)',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      isStaff: true,
+      summary: '3D BIM CAD modeling, zoning calculations & moodboards'
     },
     {
       role: 'SITE_ENGINEER',
-      label: 'Site Engineer (David Thorne)',
-      badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-      summary: 'Field progress, MEP & structural specs, inspections'
+      label: 'David Thorne (Site Engineer)',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      isStaff: true,
+      summary: 'MEP coordination, structural clashes & field progress'
     },
     {
       role: 'FINANCE',
-      label: 'Finance (Claire Dupont)',
-      badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
-      summary: 'Company ledger, invoices, draws, contractor expenses'
+      label: 'Claire Dupont (Financial Controller)',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      isStaff: true,
+      summary: 'Escrow ledgers, invoices, change orders & payment draws'
+    },
+    {
+      role: 'CLIENT',
+      label: 'Eleanor Sterling (Estate Client)',
+      badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
+      isStaff: false,
+      summary: 'Private estate portal, design reviews & milestone sign-offs'
     }
   ];
 
@@ -108,89 +120,267 @@ export const Navbar: React.FC = () => {
   const allNavItems: { id: AppViewId; label: string; icon: any }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Compass },
     { id: 'projects', label: currentUser.role === 'CLIENT' ? 'My Project' : 'Projects', icon: Briefcase },
-    { id: 'design-portal', label: currentUser.role === 'CLIENT' ? 'Design Approvals' : 'Design Portal', icon: Palette },
-    { id: 'financials', label: currentUser.role === 'CLIENT' ? 'My Financials' : 'Financials', icon: DollarSign },
-    { id: 'team-clients', label: 'Team & Clients', icon: Users },
-    { id: 'analytics', label: 'Analytics & Audit', icon: Activity }
+    { id: 'design-portal', label: currentUser.role === 'CLIENT' ? 'Design Approvals' : 'Design Studio', icon: Palette },
+    { id: 'financials', label: currentUser.role === 'CLIENT' ? 'My Financials' : 'Financials & POS', icon: DollarSign },
+    { id: 'team-clients', label: 'Team & IAM', icon: Users },
+    { id: 'analytics', label: 'Observability & APM', icon: Activity }
   ];
 
-  // Strictly filter navigation items to authorized views for this role
   const visibleNavItems = allNavItems.filter(item => hasViewAccess(currentUser.role, item.id));
 
   return (
-    <nav className="bg-white/90 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand & Role Badge */}
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setActiveView(rolePermissions.defaultView)}
-              className="flex items-center gap-2.5 group text-left cursor-pointer focus:outline-none"
-            >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#8B7355] via-[#D4AF37] to-[#B8860B] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-                <Layers className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-serif text-2xl font-bold tracking-wider text-[#2C2416]">VERTEX</span>
-                <span className="hidden sm:inline-block text-[10px] uppercase tracking-widest text-[#D4AF37] font-semibold ml-2">
-                  Studio Edition
-                </span>
-              </div>
-            </button>
-
-            {/* Quick Role Switcher Chip */}
-            <div className="relative">
+    <>
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-xs transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-14 gap-3">
+            {/* Left: Brand Logo & Role Context */}
+            <div className="flex items-center gap-4 shrink-0">
               <button
-                onClick={() => setIsRolePickerOpen(!isRolePickerOpen)}
-                className={`text-xs font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5 transition-colors cursor-pointer ${currentRoleConfig.badgeColor}`}
-                title="Switch test persona"
+                onClick={() => setActiveView(rolePermissions.defaultView)}
+                className="flex items-center gap-2 group cursor-pointer focus:outline-none"
               >
-                <Shield className="w-3 h-3" />
-                <span>{currentUser.role}</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
+                <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 shadow-sm group-hover:scale-105 transition-transform">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-base tracking-tight text-slate-900">VERTEX</span>
+                  <span className="hidden sm:inline-block text-[9px] uppercase tracking-wider font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60">
+                    Studio
+                  </span>
+                </div>
               </button>
 
-              {isRolePickerOpen && (
-                <div className="absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200/80 p-2.5 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-2.5 py-1.5 border-b border-gray-100 mb-1 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                      Switch Role Context (RBAC)
-                    </span>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                      Role Guarded
-                    </span>
+              {/* Staff Persona / 2FA Switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsRolePickerOpen(!isRolePickerOpen)}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 transition-colors cursor-pointer ${currentRoleConfig.badgeColor}`}
+                  title="Switch Role Profile (Enforces 2FA for Staff)"
+                >
+                  <Lock className="w-3 h-3 text-amber-600" />
+                  <span className="max-w-[110px] truncate">{currentUser.role}</span>
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+
+                {isRolePickerOpen && (
+                  <div className="absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-2.5 py-1.5 border-b border-slate-100 mb-1 flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Staff Persona & 2FA Gate
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        2FA Enforced
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      {roles.map(r => (
+                        <button
+                          key={r.role}
+                          onClick={() => {
+                            switchRole(r.role);
+                            setIsRolePickerOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors cursor-pointer ${
+                            currentUser.role === r.role
+                              ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/60'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-900">{r.label}</span>
+                              {r.isStaff && (
+                                <span className="text-[9px] px-1 py-0.2 rounded bg-slate-100 text-slate-600 font-mono">
+                                  2FA
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate mt-0.5">{r.summary}</div>
+                          </div>
+                          {currentUser.role === r.role && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {roles.map(r => (
-                      <button
-                        key={r.role}
-                        onClick={() => {
-                          switchRole(r.role);
-                          setIsRolePickerOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors ${
-                          currentUser.role === r.role ? 'bg-amber-50 text-[#8B7355] font-bold' : 'hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <div className="min-w-0 pr-2">
-                          <div className="font-semibold text-gray-900">{r.label}</div>
-                          <div className="text-[10px] text-gray-400 font-normal truncate">{r.summary}</div>
-                        </div>
-                        {currentUser.role === r.role ? (
-                          <span className="text-[#D4AF37] font-bold">✓</span>
-                        ) : (
-                          <span className="text-[10px] text-gray-400">Select</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                )}
+              </div>
+            </div>
+
+            {/* Center: Desktop Navigation Tabs */}
+            <nav className="hidden lg:flex items-center space-x-1">
+              {visibleNavItems.map(item => {
+                const Icon = item.icon;
+                const isActive = activeView === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveView(item.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Right: Actions, Onboarding Trigger, Notifications, Profile */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* OTP Onboarding Quick Trigger */}
+              <button
+                onClick={() => {
+                  setOnboardingInitialType(currentUser.role === 'CLIENT' ? 'CLIENT' : 'STAFF');
+                  setIsOnboardingModalOpen(true);
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition-colors cursor-pointer shadow-2xs"
+                title="Onboard Client (Email/SMS OTP) or Staff (Email OTP)"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-amber-700" />
+                <span>Onboard via OTP</span>
+              </button>
+
+              {/* Edge Latency Badge (Admin only) */}
+              {currentUser.role === 'ADMIN' && (
+                <button
+                  onClick={() => setIsClusterModalOpen(true)}
+                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
+                  title="Cluster Health & Telemetry"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <Server className="w-3 h-3 text-slate-500" />
+                  <span className="font-mono text-[10px]">{latency}ms</span>
+                </button>
               )}
+
+              {/* Live Chat Trigger */}
+              <button
+                onClick={() => setChatOpen(!chatOpen)}
+                className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                title="Open Team & Client Collaboration Chat"
+              >
+                <MessageSquare className="w-4 h-4" />
+                {totalUnread > 0 && (
+                  <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {totalUnread}
+                  </span>
+                )}
+              </button>
+
+              {/* New Project CTA */}
+              {rolePermissions.canCreateProject && (
+                <button
+                  onClick={() => {
+                    setEditingProjectData(null);
+                    setIsCreateProjectOpen(true);
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 bg-slate-900 hover:bg-black text-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Project</span>
+                </button>
+              )}
+
+              {/* User Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-1.5 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer focus:outline-none"
+                >
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-7 h-7 rounded-lg object-cover border border-slate-200"
+                  />
+                  <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block" />
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-50 animate-in fade-in zoom-in-95">
+                    <div className="flex items-center gap-3 pb-3 border-b border-slate-100 mb-2">
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.name}
+                        className="w-9 h-9 rounded-xl object-cover border border-slate-200"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-900 truncate">{currentUser.name}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded">
+                            {currentUser.role}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                            2FA Active
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => {
+                          setOnboardingInitialType('STAFF');
+                          setIsOnboardingModalOpen(true);
+                          setIsProfileOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer"
+                      >
+                        <UserPlus className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Onboard Staff via Email OTP</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setOnboardingInitialType('CLIENT');
+                          setIsOnboardingModalOpen(true);
+                          setIsProfileOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer"
+                      >
+                        <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Onboard Client via Email/Phone OTP</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          addToast('info', 'Re-authenticating session via Two-Factor Authentication...');
+                          setIsProfileOpen(false);
+                          switchRole(currentUser.role);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Re-Verify 2FA Session</span>
+                      </button>
+
+                      <div className="pt-1 border-t border-slate-100 mt-1">
+                        <button
+                          onClick={() => {
+                            addToast('info', 'Logged out. Active session closed.');
+                            setIsProfileOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-1">
+          {/* Mobile Navigation Scroll Row */}
+          <div className="lg:hidden flex overflow-x-auto py-1.5 gap-1 border-t border-slate-100 scrollbar-none">
             {visibleNavItems.map(item => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
@@ -198,164 +388,33 @@ export const Navbar: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveView(item.id)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors cursor-pointer ${
                     isActive
-                      ? 'bg-[#2C2416] text-[#D4AF37] shadow-xs'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-600 bg-slate-50 hover:bg-slate-100'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#D4AF37]' : 'text-gray-400'}`} />
+                  <Icon className="w-3 h-3" />
                   <span>{item.label}</span>
                 </button>
               );
             })}
           </div>
-
-          {/* Right Action Items */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Live Production Cluster Topology Indicator (Admin only) */}
-            {currentUser.role === 'ADMIN' && (
-              <button
-                onClick={() => setIsClusterModalOpen(true)}
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-semibold transition-all cursor-pointer shadow-xs"
-                title="Inspect Production Architecture & Cluster Health"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <Server className="w-3 h-3 text-emerald-600" />
-                <span>Edge Active</span>
-                <span className="text-[10px] text-emerald-600 font-mono opacity-80">{latency}ms</span>
-              </button>
-            )}
-
-            {/* Live Chat Drawer Trigger */}
-            <button
-              onClick={() => setChatOpen(!chatOpen)}
-              className="relative p-2.5 text-gray-600 hover:text-[#8B7355] hover:bg-amber-50/60 rounded-full transition-colors cursor-pointer"
-              title="Open Unified Chat"
-            >
-              <MessageSquare className="w-5 h-5" />
-              {totalUnread > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                  {totalUnread}
-                </span>
-              )}
-            </button>
-
-            {/* New Project CTA - Only for roles with project creation privileges */}
-            {rolePermissions.canCreateProject && (
-              <button
-                onClick={() => {
-                  setEditingProjectData(null);
-                  setIsCreateProjectOpen(true);
-                }}
-                className="hidden sm:flex items-center gap-2 bg-[#D4AF37] hover:bg-[#B8860B] text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Project</span>
-              </button>
-            )}
-
-            {/* Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#D4AF37]/50 transition-all cursor-pointer"
-              >
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-8 h-8 rounded-full object-cover border border-amber-200"
-                />
-              </button>
-
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-3.5 z-50 animate-in fade-in zoom-in-95">
-                  <div className="flex items-center gap-3 pb-3 border-b border-gray-100 mb-2">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-10 h-10 rounded-full object-cover border border-amber-200"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-gray-900 truncate">{currentUser.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{currentUser.email}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 bg-amber-50 text-[#8B7355] rounded border border-amber-200">
-                          {currentUser.role}
-                        </span>
-                        {currentUser.role === 'ADMIN' && (
-                          <span className="text-[9px] uppercase font-bold text-red-700 bg-red-50 px-1 py-0.5 rounded">
-                            SUPERUSER
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-amber-50/50 rounded-xl border border-amber-100 text-xs text-gray-600 mb-2.5">
-                    <span className="font-semibold block text-gray-900 text-[11px] mb-0.5">Role Permission Scope:</span>
-                    <p className="text-[10px] text-gray-500 leading-tight">{rolePermissions.roleDescription}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    {hasViewAccess(currentUser.role, 'design-portal') && (
-                      <button
-                        onClick={() => {
-                          setActiveView('design-portal');
-                          setIsProfileOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        <span>{currentUser.role === 'CLIENT' ? 'Design Approvals' : 'Explore Design Studio'}</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        addToast('info', 'Logged out of VERTEX. Re-initializing guest session.');
-                        setIsProfileOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Reset Session</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
-
-        {/* Mobile Sub-Navigation */}
-        <div className="lg:hidden flex overflow-x-auto py-2 gap-1 border-t border-gray-100 scrollbar-none">
-          {visibleNavItems.map(item => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-[#2C2416] text-[#D4AF37]'
-                    : 'text-gray-600 bg-gray-50'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      </header>
 
       {/* Cluster Health & Architecture Modal */}
       <ClusterHealthModal
         isOpen={isClusterModalOpen}
         onClose={() => setIsClusterModalOpen(false)}
       />
-    </nav>
+
+      {/* Universal OTP Onboarding Modal */}
+      <UserOnboardingModal
+        isOpen={isOnboardingModalOpen}
+        onClose={() => setIsOnboardingModalOpen(false)}
+        initialType={onboardingInitialType}
+      />
+    </>
   );
 };
-

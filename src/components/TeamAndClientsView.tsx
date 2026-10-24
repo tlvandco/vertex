@@ -4,6 +4,7 @@ import { TeamMember, Client } from '../types';
 import { CompanyManagementView } from './CompanyManagementView';
 import { IAMGovernanceView } from './IAMGovernanceView';
 import { OnboardingStatusTracker } from './OnboardingStatusTracker';
+import { UserOnboardingModal } from './UserOnboardingModal';
 import {
   Users,
   UserPlus,
@@ -41,6 +42,8 @@ export const TeamAndClientsView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'team' | 'clients' | 'companies' | 'iam' | 'onboarding'>('team');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [onboardingType, setOnboardingType] = useState<'CLIENT' | 'STAFF'>('STAFF');
 
   const pendingClientsCount = users.filter(
     u => (u.role === 'CLIENT' || u.onboardingStatus !== undefined) && u.onboardingStatus === 'PENDING_ONBOARDING'
@@ -116,43 +119,49 @@ export const TeamAndClientsView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-serif font-bold text-[#2C2416]">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">
             Governance, Directory & IAM
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Architects, interior designers, trade partner companies ("caranies"), client accounts, and Zero-Trust IAM access control.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Architects, interior designers, trade partner companies, client accounts, and Zero-Trust access governance.
           </p>
         </div>
 
         {currentUser.role !== 'CLIENT' && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCreateClientOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              onClick={() => {
+                setOnboardingType('CLIENT');
+                setIsOnboardingModalOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-slate-300 hover:bg-slate-100 text-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Building className="w-3.5 h-3.5" />
-              <span>Add Client Account</span>
+              <span>Add Client via OTP</span>
             </button>
             <button
-              onClick={() => setIsCreateMemberOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              onClick={() => {
+                setOnboardingType('STAFF');
+                setIsOnboardingModalOpen(true);
+              }}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-black text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Onboard Staff</span>
+              <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+              <span>Onboard Staff via Email OTP</span>
             </button>
           </div>
         )}
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="bg-white p-2 sm:p-3 rounded-2xl border border-gray-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('team')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'team'
-                ? 'bg-[#2C2416] text-[#D4AF37]'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -161,10 +170,10 @@ export const TeamAndClientsView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('clients')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'clients'
-                ? 'bg-[#2C2416] text-[#D4AF37]'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             <Building className="w-3.5 h-3.5" />
@@ -173,27 +182,27 @@ export const TeamAndClientsView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('companies')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'companies'
-                ? 'bg-[#2C2416] text-[#D4AF37]'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>Companies & Trade Partners ({companies.length})</span>
+            <span>Companies & Partners ({companies.length})</span>
           </button>
 
           {(currentUser.role === 'ADMIN' || currentUser.role === 'PROJECT_MANAGER') && (
             <>
               <button
                 onClick={() => setActiveTab('onboarding')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === 'onboarding'
-                    ? 'bg-[#2C2416] text-[#D4AF37]'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <UserCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
                 <span>Onboarding Tracker</span>
                 {pendingClientsCount > 0 && (
                   <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold animate-pulse">
@@ -204,13 +213,13 @@ export const TeamAndClientsView: React.FC = () => {
 
               <button
                 onClick={() => setActiveTab('iam')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === 'iam'
-                    ? 'bg-[#2C2416] text-[#D4AF37]'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>IAM & 2FA Governance ({users.length})</span>
               </button>
             </>
@@ -517,6 +526,13 @@ export const TeamAndClientsView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Universal OTP Onboarding Modal */}
+      <UserOnboardingModal
+        isOpen={isOnboardingModalOpen}
+        onClose={() => setIsOnboardingModalOpen(false)}
+        initialType={onboardingType}
+      />
     </div>
   );
 };
