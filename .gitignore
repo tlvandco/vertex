@@ -1,0 +1,57 @@
+# Dependencies (250MB+ - will fail GitHub push size limit)
+node_modules/
+.pnp
+.pnp.js
+bun.lock
+
+# Build & Bundles
+dist/
+dist-ssr/
+*.local
+build/
+out/
+bin/
+
+# Credentials, Keys & Secrets (Rejected by GitHub Secret Scanning)
+.ssh/
+auth.json
+*.pem
+*.key
+*.cert
+*.crt
+id_ed25519*
+id_rsa*
+.env
+.env.*.local
+!.env.example
+
+# Runtime & Databases
+data/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Java / Gradle Legacy
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache

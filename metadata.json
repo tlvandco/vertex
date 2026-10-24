@@ -1,0 +1,10 @@
+{
+  "name": "VERTEX - Enterprise Project Management Platform",
+  "description": "Enterprise project management and cutting-edge engineering platform featuring civil & structural analysis (AISC/IBC), architectural zoning and life-safety, FF&E procurement matrix, photometric lighting, and interactive CAD terminal.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
