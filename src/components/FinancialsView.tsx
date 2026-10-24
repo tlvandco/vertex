@@ -48,6 +48,7 @@ import {
   Layers as LayersIcon
 } from 'lucide-react';
 import { POSBarcodeQRScannerModal } from './financials/POSBarcodeQRScannerModal';
+import { DocumentTemplateModal } from './financials/DocumentTemplateModal';
 import {
   printDocumentHtml,
   downloadDataUrl,
@@ -80,6 +81,9 @@ export const FinancialsView: React.FC = () => {
     uploadLegalDocument,
     signLegalDocument,
     updateLegalDocumentStatus,
+    documentTemplates,
+    activeDocumentTemplate,
+    setActiveDocumentTemplate,
     currentUser,
     users,
     isProjectMember,
@@ -92,6 +96,7 @@ export const FinancialsView: React.FC = () => {
   const [selectedPOSTransaction, setSelectedPOSTransaction] = useState<POSTransaction | null>(null);
   const [selectedLegalDoc, setSelectedLegalDoc] = useState<LegalDocument | null>(null);
   const [signingDoc, setSigningDoc] = useState<LegalDocument | null>(null);
+  const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 
   // Role-Based Isolation:
   // 1. Clients can only view their own invoices, transactions and paperwork
@@ -777,31 +782,49 @@ export const FinancialsView: React.FC = () => {
           </p>
         </div>
 
-        {currentUser.role !== 'CLIENT' && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab('pos')}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Open POS Register</span>
-            </button>
-            <button
-              onClick={() => setIsUploadDocOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <FileUp className="w-3.5 h-3.5" />
-              <span>Upload Paperwork</span>
-            </button>
-            <button
-              onClick={() => setIsCreateInvoiceOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Generate Invoice</span>
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Active Template & Watermark Studio Launcher */}
+          <button
+            type="button"
+            onClick={() => setIsTemplateManagerOpen(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-300/80 bg-amber-50 hover:bg-amber-100/80 text-amber-950 transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            title="Configure company branding, custom watermarks, logos, and statement templates"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-amber-700 shrink-0" />
+            <div className="text-left">
+              <span className="text-[9px] uppercase font-bold text-amber-700 block leading-tight">Template &amp; Watermark</span>
+              <span className="text-xs font-bold truncate max-w-[160px] block leading-tight">
+                {activeDocumentTemplate.companyName} {activeDocumentTemplate.showWatermark ? '• Watermark On' : '• Clean'}
+              </span>
+            </div>
+          </button>
+
+          {currentUser.role !== 'CLIENT' && (
+            <>
+              <button
+                onClick={() => setActiveTab('pos')}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Open POS Register</span>
+              </button>
+              <button
+                onClick={() => setIsUploadDocOpen(true)}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <FileUp className="w-3.5 h-3.5" />
+                <span>Upload Paperwork</span>
+              </button>
+              <button
+                onClick={() => setIsCreateInvoiceOpen(true)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Generate Invoice</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Metrics Row */}
@@ -997,7 +1020,7 @@ export const FinancialsView: React.FC = () => {
                           )}
                           <button
                             onClick={() => {
-                              downloadInvoicePdf(inv);
+                              downloadInvoicePdf(inv, activeDocumentTemplate);
                               addToast('success', `Downloaded PDF statement for ${inv.invoiceNumber}`);
                             }}
                             className="px-2.5 py-1.5 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 font-semibold rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1"
@@ -2086,7 +2109,7 @@ export const FinancialsView: React.FC = () => {
                             if (doc.uploadedFileUrl) {
                               downloadDataUrl(doc.fileName || `${doc.documentNumber}.pdf`, doc.uploadedFileUrl);
                             } else {
-                              downloadLegalDocPdf(doc);
+                              downloadLegalDocPdf(doc, activeDocumentTemplate);
                             }
                             addToast('success', `Downloaded cryptographically verified PDF document: ${doc.documentNumber}`);
                           }}
@@ -2223,11 +2246,13 @@ export const FinancialsView: React.FC = () => {
 
             {/* Thermal Slip Layout */}
             <div className="text-center pb-4 border-b border-dashed border-gray-300">
-              <span className="font-serif text-2xl font-bold tracking-wider text-[#2C2416]">VERTEX</span>
-              <p className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-bold">
-                Point of Sale Terminal Slip
+              <span className="font-serif text-2xl font-bold tracking-wider" style={{ color: activeDocumentTemplate.primaryColor }}>
+                {activeDocumentTemplate.companyName}
+              </span>
+              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: activeDocumentTemplate.accentColor }}>
+                {activeDocumentTemplate.posSlipHeader}
               </p>
-              <p className="text-[11px] text-gray-500 mt-1">1004 Wilshire Blvd, Beverly Hills, CA</p>
+              <p className="text-[11px] text-gray-500 mt-1">{activeDocumentTemplate.addressLine1}</p>
               <p className="text-[10px] text-gray-400 font-mono mt-0.5">{selectedPOSTransaction.terminalId}</p>
             </div>
 
@@ -2290,14 +2315,14 @@ export const FinancialsView: React.FC = () => {
             </div>
 
             <div className="py-4 text-center text-[10px] font-mono text-gray-400 space-y-1">
-              <p>CRYPTOGRAPHIC RECEIPT SEAL</p>
+              <p>{activeDocumentTemplate.sealTitle}</p>
               <p className="truncate text-[9px] text-gray-500">{selectedPOSTransaction.receiptHash}</p>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
               <button
                 onClick={() => {
-                  printDocumentHtml(`POS Receipt - ${selectedPOSTransaction.transactionNumber}`, generatePOSThermalSlipHtml(selectedPOSTransaction));
+                  printDocumentHtml(`POS Receipt - ${selectedPOSTransaction.transactionNumber}`, generatePOSThermalSlipHtml(selectedPOSTransaction, activeDocumentTemplate));
                   addToast('success', `Sent POS receipt ${selectedPOSTransaction.transactionNumber} to print preview.`);
                 }}
                 className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2307,7 +2332,7 @@ export const FinancialsView: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  downloadPOSThermalSlipPdf(selectedPOSTransaction);
+                  downloadPOSThermalSlipPdf(selectedPOSTransaction, activeDocumentTemplate);
                   addToast('success', `Downloaded receipt slip PDF for ${selectedPOSTransaction.transactionNumber}`);
                 }}
                 className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2482,11 +2507,13 @@ export const FinancialsView: React.FC = () => {
             {/* Document Header */}
             <div className="flex justify-between items-start pb-6 border-b border-gray-200 mb-6">
               <div>
-                <span className="font-serif text-2xl font-bold tracking-wider text-[#2C2416]">VERTEX</span>
-                <p className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-bold">
-                  Official Architectural Legal Instrument
+                <span className="font-serif text-2xl font-bold tracking-wider" style={{ color: activeDocumentTemplate.primaryColor }}>
+                  {activeDocumentTemplate.companyName}
+                </span>
+                <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: activeDocumentTemplate.accentColor }}>
+                  {activeDocumentTemplate.legalDocumentVaultHeader}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Project: {selectedLegalDoc.projectName}</p>
+                <p className="text-xs text-gray-500 mt-1">Project: {selectedLegalDoc.projectName} &bull; {activeDocumentTemplate.addressLine1}</p>
               </div>
               <div className="text-right">
                 <span className="font-mono text-base font-bold text-gray-900">{selectedLegalDoc.documentNumber}</span>
@@ -2532,7 +2559,7 @@ export const FinancialsView: React.FC = () => {
 
             {selectedLegalDoc.signatureCertificate && (
               <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 font-mono mb-6 space-y-1">
-                <p className="font-bold">🔐 Cryptographic Certificate ID: {selectedLegalDoc.signatureCertificate.certificateId}</p>
+                <p className="font-bold">🔐 {activeDocumentTemplate.sealTitle} ID: {selectedLegalDoc.signatureCertificate.certificateId}</p>
                 <p className="text-[10px] truncate">Hash: {selectedLegalDoc.signatureCertificate.cryptoHash}</p>
                 <p className="text-[10px]">Timestamp: {selectedLegalDoc.signatureCertificate.signedAt}</p>
               </div>
@@ -2542,7 +2569,7 @@ export const FinancialsView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    printDocumentHtml(`${selectedLegalDoc.title} - ${selectedLegalDoc.documentNumber}`, generateLegalDocHtml(selectedLegalDoc));
+                    printDocumentHtml(`${selectedLegalDoc.title} - ${selectedLegalDoc.documentNumber}`, generateLegalDocHtml(selectedLegalDoc, activeDocumentTemplate));
                     addToast('success', `Sent document ${selectedLegalDoc.documentNumber} to print preview.`);
                   }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
@@ -2555,7 +2582,7 @@ export const FinancialsView: React.FC = () => {
                     if (selectedLegalDoc.uploadedFileUrl) {
                       downloadDataUrl(selectedLegalDoc.fileName || `${selectedLegalDoc.documentNumber}.pdf`, selectedLegalDoc.uploadedFileUrl);
                     } else {
-                      downloadLegalDocPdf(selectedLegalDoc);
+                      downloadLegalDocPdf(selectedLegalDoc, activeDocumentTemplate);
                     }
                     addToast('success', `Downloaded PDF document ${selectedLegalDoc.documentNumber}`);
                   }}
@@ -2696,11 +2723,13 @@ export const FinancialsView: React.FC = () => {
 
             <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
               <div>
-                <span className="font-serif text-2xl font-bold tracking-wider text-[#2C2416]">VERTEX</span>
-                <span className="text-[10px] block uppercase tracking-widest text-[#D4AF37] font-semibold">
-                  Architectural Masterworks Inc.
+                <span className="font-serif text-2xl font-bold tracking-wider" style={{ color: activeDocumentTemplate.primaryColor }}>
+                  {activeDocumentTemplate.companyName}
                 </span>
-                <p className="text-xs text-gray-400 mt-2">1004 Wilshire Blvd, Suite 800, Beverly Hills, CA</p>
+                <span className="text-[10px] block uppercase tracking-widest font-semibold" style={{ color: activeDocumentTemplate.accentColor }}>
+                  {activeDocumentTemplate.entityTypeTagline}
+                </span>
+                <p className="text-xs text-gray-400 mt-2">{activeDocumentTemplate.addressLine1}</p>
               </div>
               <div className="text-right">
                 <span className="font-mono text-lg font-bold text-gray-900">{selectedInvoice.invoiceNumber}</span>
@@ -2771,7 +2800,7 @@ export const FinancialsView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    printDocumentHtml(`Invoice ${selectedInvoice.invoiceNumber} - VERTEX`, generateInvoiceHtml(selectedInvoice));
+                    printDocumentHtml(`Invoice ${selectedInvoice.invoiceNumber} - ${activeDocumentTemplate.companyName}`, generateInvoiceHtml(selectedInvoice, activeDocumentTemplate));
                     addToast('success', `Sent statement for ${selectedInvoice.invoiceNumber} to print preview.`);
                   }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
@@ -2781,7 +2810,7 @@ export const FinancialsView: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    downloadInvoicePdf(selectedInvoice);
+                    downloadInvoicePdf(selectedInvoice, activeDocumentTemplate);
                     addToast('success', `Downloaded official PDF statement for ${selectedInvoice.invoiceNumber}`);
                   }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#2C2416] hover:bg-black text-[#D4AF37] flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -3511,6 +3540,12 @@ export const FinancialsView: React.FC = () => {
           addCatalogItem(newItem as any);
         }}
         initialItemToGenerate={barcodeItemToGenerate}
+      />
+
+      {/* Open-Source Document & Statements Template Studio Modal */}
+      <DocumentTemplateModal
+        isOpen={isTemplateManagerOpen}
+        onClose={() => setIsTemplateManagerOpen(false)}
       />
     </div>
   );

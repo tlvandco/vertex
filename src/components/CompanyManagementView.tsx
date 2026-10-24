@@ -98,6 +98,7 @@ export const CompanyManagementView: React.FC = () => {
     deleteCompany,
     projects,
     currentUser,
+    activeDocumentTemplate,
     addToast,
     trigger2FAChallenge
   } = useApp();
@@ -1563,7 +1564,7 @@ export const CompanyManagementView: React.FC = () => {
               ) : (
                 <button
                   onClick={() => {
-                    downloadNdaPdf(viewingNdaCompany);
+                    downloadNdaPdf(viewingNdaCompany, activeDocumentTemplate);
                     addToast('success', `Downloaded executed NDA certified PDF agreement for ${viewingNdaCompany.name}`);
                   }}
                   className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 rounded-xl font-bold transition-colors flex items-center gap-1.5 cursor-pointer"

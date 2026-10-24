@@ -26,7 +26,7 @@ id_rsa*
 !.env.example
 
 # Runtime & Databases
-data/
+/data/
 logs/
 *.log
 npm-debug.log*

@@ -822,3 +822,65 @@ export interface SystemArchitectureSpec {
   };
 }
 
+export type TemplateHeaderStyle = 'modern' | 'classic' | 'minimal' | 'aia_standard' | 'industrial' | 'luxury_atelier';
+export type WatermarkType = 'text' | 'image' | 'none';
+export type WatermarkPlacement = 'center' | 'diagonal' | 'bottom_seal';
+
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  isDefault?: boolean;
+  isOpenSourcePreset?: boolean;
+
+  // Company & Entity Branding (Replaces hardcoded VERTEX everywhere)
+  companyName: string;
+  legalEntityName: string;
+  entityTypeTagline: string;
+  logoUrl?: string; // Data URL or external image URL
+  logoTextMonogram?: string;
+
+  // Visual Theme & Layout
+  primaryColor: string;
+  accentColor: string;
+  secondaryTextColor?: string;
+  headerStyle: TemplateHeaderStyle;
+  fontFamily: 'serif' | 'sans' | 'mono';
+
+  // Customizable Watermark
+  showWatermark: boolean;
+  watermarkType: WatermarkType;
+  watermarkText: string;
+  watermarkImageUrl?: string;
+  watermarkOpacity: number; // 0.01 to 0.40
+  watermarkAngle: number; // e.g. -30, -45, 0, 45
+  watermarkPlacement: WatermarkPlacement;
+
+  // Contact & Registration
+  addressLine1: string;
+  addressLine2?: string;
+  phone: string;
+  email: string;
+  website?: string;
+  taxRegistrationNumber: string; // EIN / VAT / Corporate Registration
+  architectLicenseNumber?: string;
+
+  // Document Covenants, Disclaimers & Banking
+  invoicePaymentTerms: string;
+  invoiceWireInstructions?: string;
+  invoiceFooterDisclaimer: string;
+
+  posSlipHeader: string;
+  posSlipFooter: string;
+
+  legalDocumentVaultHeader: string;
+  legalDocumentJurisdiction: string;
+  legalDocumentFooterDisclaimer: string;
+
+  sealTitle: string;
+
+  // Optional custom HTML template wrapper / open source override
+  customHtmlWrapper?: string;
+  updatedAt: string;
+}
+

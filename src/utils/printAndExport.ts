@@ -1,10 +1,44 @@
 import { jsPDF } from 'jspdf';
-import { Invoice, POSTransaction, LegalDocument } from '../types';
+import { Invoice, POSTransaction, LegalDocument, DocumentTemplate } from '../types';
+import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 
 /**
  * Utility for client-side printing and authentic vector PDF downloads
- * Generates true .pdf format documents using jsPDF.
+ * Fully dynamic: respects customizable company branding, logos, custom watermarks,
+ * opacities, rotations, and disclaimers from the active DocumentTemplate.
  */
+
+const hexToRgb = (hex: string, fallback: [number, number, number] = [44, 36, 22]): [number, number, number] => {
+  if (!hex) return fallback;
+  const clean = hex.replace('#', '').trim();
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16);
+    const g = parseInt(clean[1] + clean[1], 16);
+    const b = parseInt(clean[2] + clean[2], 16);
+    return isNaN(r) || isNaN(g) || isNaN(b) ? fallback : [r, g, b];
+  }
+  if (clean.length === 6) {
+    const num = parseInt(clean, 16);
+    return isNaN(num) ? fallback : [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+  }
+  return fallback;
+};
+
+export const getEffectiveTemplate = (template?: DocumentTemplate): DocumentTemplate => {
+  if (template) return template;
+  try {
+    const savedActiveId = localStorage.getItem('vertex_active_template_id');
+    const savedTemplatesJson = localStorage.getItem('vertex_document_templates');
+    if (savedTemplatesJson) {
+      const parsed: DocumentTemplate[] = JSON.parse(savedTemplatesJson);
+      const match = parsed.find(t => t.id === savedActiveId) || parsed.find(t => t.isDefault) || parsed[0];
+      if (match) return match;
+    }
+  } catch (e) {
+    // fallback
+  }
+  return DEFAULT_TEMPLATES[0];
+};
 
 export const downloadFile = (fileName: string, content: string | Blob, mimeType = 'text/plain') => {
   const blob = typeof content === 'string' ? new Blob([content], { type: mimeType }) : content;
@@ -28,6 +62,9 @@ export const downloadDataUrl = (fileName: string, dataUrl: string) => {
   a.click();
   setTimeout(() => {
     document.body.removeChild(a);
+    if (dataUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(dataUrl);
+    }
   }, 300);
 };
 
@@ -56,7 +93,7 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
         <title>${title}</title>
         <style>
           @page {
-            margin: 15mm;
+            margin: 14mm;
             size: auto;
           }
           * {
@@ -70,6 +107,7 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
             padding: 24px;
             line-height: 1.5;
             font-size: 13px;
+            position: relative;
           }
           .brand-header {
             display: flex;
@@ -79,18 +117,25 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
             padding-bottom: 18px;
             margin-bottom: 24px;
           }
+          .brand-logo-img {
+            max-height: 48px;
+            max-width: 180px;
+            object-fit: contain;
+            margin-bottom: 6px;
+          }
           .brand-name {
             font-family: "Playfair Display", Georgia, serif;
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 800;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             color: #2C2416;
             margin: 0;
+            line-height: 1.2;
           }
           .brand-sub {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1.2px;
             color: #8B7355;
             margin-top: 4px;
           }
@@ -191,7 +236,7 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
             margin-top: 6px;
           }
           .seal-box {
-            margin-top: 32px;
+            margin-top: 28px;
             padding: 14px;
             border: 1px dashed #d1d5db;
             border-radius: 8px;
@@ -204,12 +249,30 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
             color: #111827;
           }
           .footer-note {
-            margin-top: 30px;
+            margin-top: 28px;
             text-align: center;
             font-size: 11px;
             color: #9ca3af;
             border-top: 1px solid #e5e7eb;
             padding-top: 14px;
+            line-height: 1.6;
+          }
+          .watermark-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            pointer-events: none;
+            z-index: 0;
+            text-align: center;
+            font-weight: 900;
+            font-size: 48px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+          }
+          .doc-content-wrapper {
+            position: relative;
+            z-index: 1;
           }
           @media print {
             body {
@@ -217,6 +280,9 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
             }
             .no-print {
               display: none;
+            }
+            .watermark-overlay {
+              position: fixed;
             }
           }
         </style>
@@ -239,109 +305,160 @@ export const printDocumentHtml = (title: string, bodyHtml: string) => {
   }, 350);
 };
 
-export const generateInvoiceHtml = (invoice: Invoice): string => {
+export const generateInvoiceHtml = (invoice: Invoice, templateConfig?: DocumentTemplate): string => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const isPaid = invoice.status === 'PAID';
   const badgeClass = isPaid ? 'badge-paid' : 'badge-pending';
 
+  const watermarkHtml = tpl.showWatermark && tpl.watermarkType !== 'none' ? `
+    <div class="watermark-overlay" style="
+      opacity: ${tpl.watermarkOpacity};
+      transform: translate(-50%, -50%) rotate(${tpl.watermarkAngle}deg);
+      color: ${tpl.primaryColor};
+    ">
+      ${tpl.watermarkType === 'image' && tpl.watermarkImageUrl ? `
+        <img src="${tpl.watermarkImageUrl}" style="max-width: 320px; opacity: ${tpl.watermarkOpacity};" alt="Watermark" />
+      ` : `
+        ${tpl.watermarkText || tpl.companyName}
+      `}
+    </div>
+  ` : '';
+
+  const logoOrMonogram = tpl.logoUrl ? `
+    <img src="${tpl.logoUrl}" class="brand-logo-img" alt="${tpl.companyName}" />
+  ` : '';
+
   return `
-    <div class="brand-header">
-      <div>
-        <h1 class="brand-name">VERTEX</h1>
-        <div class="brand-sub">Architectural Studio & Construction Management</div>
-        <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-          9454 Wilshire Blvd, Suite 1100, Beverly Hills, CA 90212 &bull; contact@vertex-studio.com
+    <div class="doc-content-wrapper">
+      ${watermarkHtml}
+
+      <div class="brand-header" style="border-bottom-color: ${tpl.primaryColor};">
+        <div>
+          ${logoOrMonogram}
+          <h1 class="brand-name" style="color: ${tpl.primaryColor}; font-family: ${tpl.fontFamily === 'serif' ? '"Playfair Display", Georgia, serif' : tpl.fontFamily === 'mono' ? '"Courier New", monospace' : '-apple-system, BlinkMacSystemFont, sans-serif'};">
+            ${tpl.companyName}
+          </h1>
+          <div class="brand-sub" style="color: ${tpl.accentColor};">${tpl.entityTypeTagline}</div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+            ${tpl.addressLine1}${tpl.addressLine2 ? ` &bull; ${tpl.addressLine2}` : ''} &bull; ${tpl.phone} &bull; ${tpl.email}
+          </div>
+          ${tpl.architectLicenseNumber ? `
+            <div style="font-size: 10px; color: #9ca3af; margin-top: 2px;">
+              License / Registration: ${tpl.architectLicenseNumber} &bull; Tax ID: ${tpl.taxRegistrationNumber}
+            </div>
+          ` : ''}
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">INVOICE STATEMENT</div>
+          <div><strong>Invoice #:</strong> ${invoice.invoiceNumber}</div>
+          <div><strong>Date:</strong> ${invoice.issueDate}</div>
+          <div><strong>Due Date:</strong> ${invoice.dueDate}</div>
+          <div style="margin-top: 6px;">
+            <span class="badge ${badgeClass}">${invoice.status}</span>
+          </div>
         </div>
       </div>
-      <div class="doc-meta">
-        <div class="doc-title">INVOICE STATEMENT</div>
-        <div><strong>Invoice #:</strong> ${invoice.invoiceNumber}</div>
-        <div><strong>Date:</strong> ${invoice.issueDate}</div>
-        <div><strong>Due Date:</strong> ${invoice.dueDate}</div>
-        <div style="margin-top: 6px;">
-          <span class="badge ${badgeClass}">${invoice.status}</span>
+
+      <div class="grid-two">
+        <div class="info-card">
+          <h4>Billed To</h4>
+          <div style="font-weight: bold; font-size: 14px; color: #111827;">${invoice.clientName}</div>
+          <div style="color: #4b5563; font-size: 12px; margin-top: 2px;">${invoice.clientEmail}</div>
+          <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">Client Account ID: ${invoice.clientId}</div>
+        </div>
+        <div class="info-card">
+          <h4>Project Estate</h4>
+          <div style="font-weight: bold; font-size: 14px; color: #111827;">${invoice.projectName}</div>
+          <div style="color: #4b5563; font-size: 12px; margin-top: 2px;">Project Code: ${invoice.projectId}</div>
+          <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">Escrow Billing Reference: ESC-${invoice.id.slice(-6).toUpperCase()}</div>
         </div>
       </div>
-    </div>
 
-    <div class="grid-two">
-      <div class="info-card">
-        <h4>Billed To</h4>
-        <div style="font-weight: bold; font-size: 14px; color: #111827;">${invoice.clientName}</div>
-        <div style="color: #4b5563; font-size: 12px; margin-top: 2px;">${invoice.clientEmail}</div>
-        <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">Client Account ID: ${invoice.clientId}</div>
-      </div>
-      <div class="info-card">
-        <h4>Project Estate</h4>
-        <div style="font-weight: bold; font-size: 14px; color: #111827;">${invoice.projectName}</div>
-        <div style="color: #4b5563; font-size: 12px; margin-top: 2px;">Project Code: ${invoice.projectId}</div>
-        <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">Escrow Billing Reference: ESC-${invoice.id.slice(-6).toUpperCase()}</div>
-      </div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 50%;">Description / Scope of Work</th>
-          <th class="text-right" style="width: 15%;">Qty</th>
-          <th class="text-right" style="width: 15%;">Unit Rate</th>
-          <th class="text-right" style="width: 20%;">Total Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${(invoice.items || []).map(item => `
-          <tr>
-            <td>
-              <div style="font-weight: 600; color: #111827;">${item.description}</div>
-            </td>
-            <td class="text-right">${item.quantity}</td>
-            <td class="text-right">$${item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            <td class="text-right" style="font-weight: 600;">$${item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+      <table>
+        <thead>
+          <tr style="background: ${tpl.primaryColor}10;">
+            <th style="width: 50%;">Description / Scope of Work</th>
+            <th class="text-right" style="width: 15%;">Qty</th>
+            <th class="text-right" style="width: 15%;">Unit Rate</th>
+            <th class="text-right" style="width: 20%;">Total Amount</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${(invoice.items || []).map(item => `
+            <tr>
+              <td>
+                <div style="font-weight: 600; color: #111827;">${item.description}</div>
+              </td>
+              <td class="text-right">${item.quantity}</td>
+              <td class="text-right">$${item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td class="text-right" style="font-weight: 600;">$${item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
 
-    <div class="totals-wrap">
-      <div class="totals-table">
-        <div class="totals-row">
-          <span>Subtotal:</span>
-          <span>$${invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div class="totals-row">
-          <span>Procurement Tax (8%):</span>
-          <span>$${invoice.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div class="totals-grand">
-          <span>Total Balance Due:</span>
-          <span style="color: #8B7355;">$${invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+      <div class="totals-wrap">
+        <div class="totals-table">
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>$${invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="totals-row">
+            <span>Procurement Tax (8%):</span>
+            <span>$${invoice.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="totals-grand" style="border-top-color: ${tpl.primaryColor};">
+            <span>Total Balance Due:</span>
+            <span style="color: ${tpl.accentColor}; font-weight: 800;">$${invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="seal-box">
-      <div><strong>VERTEX ARCHITECTURAL AUDIT &amp; ESCROW SEAL:</strong></div>
-      <div style="margin-top: 4px; word-break: break-all;">
-        HASH: SHA256:4b9a81e7d62f01ac29f829871182319b9812a8149814c810981b94871
-      </div>
-      <div style="margin-top: 4px;">
-        Status: ${isPaid ? 'PAID &amp; CERTIFIED SETTLED' : 'AUTHORIZED FOR DIRECT WIRE / ESCROW SETTLEMENT'} &bull; Generated: ${new Date().toISOString()}
-      </div>
-    </div>
+      ${tpl.invoiceWireInstructions ? `
+        <div style="margin-top: 20px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 11px;">
+          <div style="font-weight: bold; color: ${tpl.primaryColor}; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Banking &amp; Wire Settlement Instructions:</div>
+          <div style="margin-top: 3px; color: #334155;">${tpl.invoiceWireInstructions}</div>
+        </div>
+      ` : ''}
 
-    <div class="footer-note">
-      Thank you for partnering with VERTEX Architectural Studio. All architectural plans, specifications, and structural deliverables remain protected under California Architectural Property Rights until accounts are settled.
+      <div class="seal-box">
+        <div><strong>${tpl.sealTitle}:</strong></div>
+        <div style="margin-top: 4px; word-break: break-all;">
+          HASH: SHA256:4b9a81e7d62f01ac29f829871182319b9812a8149814c810981b94871
+        </div>
+        <div style="margin-top: 4px;">
+          Status: ${isPaid ? 'PAID &amp; CERTIFIED SETTLED' : 'AUTHORIZED FOR DIRECT WIRE / ESCROW SETTLEMENT'} &bull; Issued By: ${tpl.legalEntityName} &bull; Generated: ${new Date().toISOString()}
+        </div>
+      </div>
+
+      <div class="footer-note">
+        ${tpl.invoiceFooterDisclaimer}
+        ${tpl.watermarkPlacement === 'bottom_seal' && tpl.showWatermark ? `
+          <div style="margin-top: 8px; font-size: 9px; opacity: 0.7; letter-spacing: 2px;">
+            &bull; WATERMARK AUDIT STAMP: ${tpl.watermarkText || tpl.companyName} &bull;
+          </div>
+        ` : ''}
+      </div>
     </div>
   `;
 };
 
-export const generatePOSThermalSlipHtml = (tx: POSTransaction): string => {
+export const generatePOSThermalSlipHtml = (tx: POSTransaction, templateConfig?: DocumentTemplate): string => {
+  const tpl = getEffectiveTemplate(templateConfig);
+
   return `
-    <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; padding: 10px;">
+    <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; padding: 10px; position: relative;">
+      ${tpl.showWatermark && tpl.watermarkType === 'text' ? `
+        <div style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(${tpl.watermarkAngle}deg); font-size: 20px; font-weight: bold; color: #000; opacity: ${tpl.watermarkOpacity}; pointer-events: none; text-align: center; white-space: nowrap;">
+          ${tpl.watermarkText || tpl.companyName}
+        </div>
+      ` : ''}
+
       <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-        <div style="font-size: 16px; font-weight: bold; letter-spacing: 1px;">VERTEX ARCHITECTURE</div>
-        <div style="font-size: 10px;">EXECUTIVE TERMINAL POS</div>
-        <div style="font-size: 9px; margin-top: 4px;">9454 Wilshire Blvd, Beverly Hills, CA</div>
-        <div style="font-size: 9px;">TEL: (310) 555-8392</div>
+        <div style="font-size: 16px; font-weight: bold; letter-spacing: 1px;">${tpl.companyName}</div>
+        <div style="font-size: 10px;">${tpl.posSlipHeader}</div>
+        <div style="font-size: 9px; margin-top: 4px;">${tpl.addressLine1}</div>
+        <div style="font-size: 9px;">TEL: ${tpl.phone}</div>
       </div>
 
       <div style="margin-bottom: 10px; font-size: 10px; line-height: 1.4;">
@@ -367,7 +484,7 @@ export const generatePOSThermalSlipHtml = (tx: POSTransaction): string => {
           <div style="font-size: 9px; color: #555; margin-bottom: 4px;">CATEGORY: ${it.category}</div>
         `).join('') : `
           <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span>Architecture &amp; Procurement</span>
+            <span>Procurement &amp; Services</span>
             <span>$${(tx.total ?? 0).toLocaleString()}</span>
           </div>
         `}
@@ -395,99 +512,139 @@ export const generatePOSThermalSlipHtml = (tx: POSTransaction): string => {
       </div>
 
       <div style="border: 1px solid #000; padding: 6px; text-align: center; margin-top: 12px; font-size: 9px;">
-        <div style="font-weight: bold;">CRYPTOGRAPHIC RECEIPT SEAL</div>
+        <div style="font-weight: bold;">${tpl.sealTitle}</div>
         <div style="word-break: break-all; margin-top: 2px;">${tx.receiptHash}</div>
         <div style="margin-top: 4px; font-weight: bold;">STATUS: APPROVED / CAPTURED</div>
       </div>
 
       <div style="text-align: center; margin-top: 14px; font-size: 9px;">
-        *** CARDHOLDER AGREES TO TERMS ***<br />
-        CUSTOMER COPY &bull; RETAIN FOR RECORDS
+        *** ${tpl.posSlipFooter} ***<br />
+        ISSUED BY ${tpl.legalEntityName.toUpperCase()}
       </div>
     </div>
   `;
 };
 
-export const generateLegalDocHtml = (doc: LegalDocument): string => {
+export const generateLegalDocHtml = (doc: LegalDocument, templateConfig?: DocumentTemplate): string => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const cert = doc.signatureCertificate;
 
+  const watermarkHtml = tpl.showWatermark && tpl.watermarkType !== 'none' ? `
+    <div class="watermark-overlay" style="
+      opacity: ${tpl.watermarkOpacity};
+      transform: translate(-50%, -50%) rotate(${tpl.watermarkAngle}deg);
+      color: ${tpl.primaryColor};
+    ">
+      ${tpl.watermarkText || tpl.companyName}
+    </div>
+  ` : '';
+
   return `
-    <div class="brand-header">
-      <div>
-        <h1 class="brand-name">VERTEX</h1>
-        <div class="brand-sub">Proprietary Legal &amp; Architectural Compliance Vault</div>
-      </div>
-      <div class="doc-meta">
-        <div class="doc-title">${doc.title}</div>
-        <div><strong>Doc Reference:</strong> ${doc.documentNumber}</div>
-        <div><strong>Category:</strong> ${doc.category}</div>
-        <div><strong>Effective Date:</strong> ${doc.effectiveDate}</div>
-        <div style="margin-top: 6px;">
-          <span class="badge badge-paid">${doc.status}</span>
+    <div class="doc-content-wrapper">
+      ${watermarkHtml}
+
+      <div class="brand-header" style="border-bottom-color: ${tpl.primaryColor};">
+        <div>
+          ${tpl.logoUrl ? `<img src="${tpl.logoUrl}" class="brand-logo-img" alt="${tpl.companyName}" />` : ''}
+          <h1 class="brand-name" style="color: ${tpl.primaryColor};">${tpl.companyName}</h1>
+          <div class="brand-sub" style="color: ${tpl.accentColor};">${tpl.legalDocumentVaultHeader}</div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">${doc.title}</div>
+          <div><strong>Doc Reference:</strong> ${doc.documentNumber}</div>
+          <div><strong>Category:</strong> ${doc.category}</div>
+          <div><strong>Effective Date:</strong> ${doc.effectiveDate}</div>
+          <div style="margin-top: 6px;">
+            <span class="badge badge-paid">${doc.status}</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="grid-two">
-      <div class="info-card">
-        <h4>Party of First Part (Disclosing / Architect)</h4>
-        <div style="font-weight: bold; font-size: 14px; color: #111827;">VERTEX Architectural Studio Inc.</div>
-        <div style="color: #4b5563; font-size: 12px;">Corporate Headquarters &bull; Beverly Hills, CA</div>
+      <div class="grid-two">
+        <div class="info-card">
+          <h4>Party of First Part (Disclosing / Architect)</h4>
+          <div style="font-weight: bold; font-size: 14px; color: #111827;">${tpl.legalEntityName}</div>
+          <div style="color: #4b5563; font-size: 12px;">${tpl.addressLine1}${tpl.addressLine2 ? `, ${tpl.addressLine2}` : ''}</div>
+          <div style="color: #6b7280; font-size: 11px; margin-top: 3px;">Tax ID: ${tpl.taxRegistrationNumber}</div>
+        </div>
+        <div class="info-card">
+          <h4>Party of Second Part (Recipient / Partner)</h4>
+          <div style="font-weight: bold; font-size: 14px; color: #111827;">${doc.companyName || doc.clientName}</div>
+          <div style="color: #4b5563; font-size: 12px;">Project Association: ${doc.projectName}</div>
+        </div>
       </div>
-      <div class="info-card">
-        <h4>Party of Second Part (Recipient / Partner)</h4>
-        <div style="font-weight: bold; font-size: 14px; color: #111827;">${doc.companyName || doc.clientName}</div>
-        <div style="color: #4b5563; font-size: 12px;">Project Association: ${doc.projectName}</div>
-      </div>
-    </div>
 
-    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin: 20px 0; font-size: 13px; line-height: 1.7; white-space: pre-line; color: #1f2937;">
+      <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; margin: 20px 0; font-size: 13px; line-height: 1.7; white-space: pre-line; color: #1f2937;">
 ${doc.content}
-    </div>
-
-    ${cert ? `
-      <div class="seal-box" style="background: #f0fdf4; border-color: #86efac; color: #166534;">
-        <div style="font-size: 12px; font-weight: bold; color: #14532d;">🔐 CRYPTOGRAPHIC DIGITAL SIGNATURE CERTIFICATE</div>
-        <div style="margin-top: 6px;"><strong>Certificate ID:</strong> ${cert.certificateId}</div>
-        <div><strong>Signed By:</strong> ${cert.signedByName} (${cert.signedByRole || 'Authorized Officer'})</div>
-        <div><strong>Timestamp:</strong> ${cert.signedAt}</div>
-        <div><strong>Origin IP:</strong> ${cert.ipAddress || '198.51.100.42'}</div>
-        <div style="word-break: break-all; margin-top: 4px;"><strong>SHA-256 Tamper Seal:</strong> ${cert.cryptoHash}</div>
       </div>
-    ` : ''}
 
-    <div class="footer-note">
-      This document is verified and archived in the VERTEX Cryptographic Compliance Vault under California Uniform Electronic Transactions Act (UETA) and Federal ESIGN Act.
+      ${cert ? `
+        <div class="seal-box" style="background: #f0fdf4; border-color: #86efac; color: #166534;">
+          <div style="font-size: 12px; font-weight: bold; color: #14532d;">🔐 CRYPTOGRAPHIC DIGITAL SIGNATURE CERTIFICATE</div>
+          <div style="margin-top: 6px;"><strong>Certificate ID:</strong> ${cert.certificateId}</div>
+          <div><strong>Signed By:</strong> ${cert.signedByName} (${cert.signedByRole || 'Authorized Officer'})</div>
+          <div><strong>Timestamp:</strong> ${cert.signedAt}</div>
+          <div><strong>Origin IP:</strong> ${cert.ipAddress || '198.51.100.42'}</div>
+          <div style="word-break: break-all; margin-top: 4px;"><strong>SHA-256 Tamper Seal:</strong> ${cert.cryptoHash}</div>
+        </div>
+      ` : ''}
+
+      <div class="footer-note">
+        ${tpl.legalDocumentFooterDisclaimer}
+        <div style="margin-top: 4px; font-size: 10px; color: #9ca3af;">
+          Jurisdiction: ${tpl.legalDocumentJurisdiction}
+        </div>
+      </div>
     </div>
   `;
 };
 
 /**
- * Generates and downloads a genuine vector PDF Invoice Statement
+ * Generates and downloads a genuine vector PDF Invoice Statement with active template branding
  */
-export const downloadInvoicePdf = (invoice: Invoice): void => {
+export const downloadInvoicePdf = (invoice: Invoice, templateConfig?: DocumentTemplate): void => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const isPaid = invoice.status === 'PAID';
 
+  const [pr, pg, pb] = hexToRgb(tpl.primaryColor, [44, 36, 22]);
+  const [ar, ag, ab] = hexToRgb(tpl.accentColor, [139, 115, 85]);
+
+  // Watermark on PDF if enabled
+  if (tpl.showWatermark && tpl.watermarkType !== 'none' && tpl.watermarkText) {
+    pdf.saveGraphicsState();
+    // Render faint diagonal watermark across center of page
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(26);
+    // Convert opacity (0.01 - 0.40) to RGB lightness tone
+    const lightness = Math.round(255 - (tpl.watermarkOpacity * 255 * 1.8));
+    pdf.setTextColor(lightness, lightness, lightness);
+    pdf.text(tpl.watermarkText, 105, 150, {
+      align: 'center',
+      angle: tpl.watermarkAngle || -30
+    });
+    pdf.restoreGraphicsState();
+  }
+
   // Top header accent line
-  pdf.setFillColor(44, 36, 22); // #2C2416
+  pdf.setFillColor(pr, pg, pb);
   pdf.rect(15, 12, 180, 2.5, 'F');
 
   // Brand Name & Subtitle
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(22);
-  pdf.setTextColor(44, 36, 22);
-  pdf.text('VERTEX', 15, 23);
+  pdf.setFontSize(20);
+  pdf.setTextColor(pr, pg, pb);
+  pdf.text(tpl.companyName, 15, 23);
 
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(139, 115, 85); // #8B7355
-  pdf.text('ARCHITECTURAL STUDIO & CONSTRUCTION MANAGEMENT', 15, 28);
+  pdf.setTextColor(ar, ag, ab);
+  pdf.text(tpl.entityTypeTagline.toUpperCase(), 15, 28);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(7.5);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('9454 Wilshire Blvd, Suite 1100, Beverly Hills, CA 90212  •  contact@vertex-studio.com', 15, 33);
+  pdf.text(`${tpl.addressLine1}  •  ${tpl.phone}  •  ${tpl.email}`, 15, 33);
 
   // Document Info (Right side)
   pdf.setFont('helvetica', 'bold');
@@ -504,18 +661,18 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
 
   // Status Badge
   if (isPaid) {
-    pdf.setFillColor(220, 252, 231); // #dcfce7
+    pdf.setFillColor(220, 252, 231);
     pdf.roundedRect(165, 41, 30, 6, 1.5, 1.5, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(7.5);
-    pdf.setTextColor(22, 101, 52); // #166534
+    pdf.setTextColor(22, 101, 52);
     pdf.text('STATUS: PAID', 180, 45.2, { align: 'center' });
   } else {
-    pdf.setFillColor(254, 243, 199); // #fef3c7
+    pdf.setFillColor(254, 243, 199);
     pdf.roundedRect(155, 41, 40, 6, 1.5, 1.5, 'F');
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(7.5);
-    pdf.setTextColor(146, 64, 14); // #92400e
+    pdf.setTextColor(146, 64, 14);
     pdf.text(`STATUS: ${invoice.status}`, 175, 45.2, { align: 'center' });
   }
 
@@ -524,7 +681,6 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.setLineWidth(0.5);
   pdf.line(15, 50, 195, 50);
 
-  // Two columns: Billed To and Project Info
   // Left Box: Billed To
   pdf.setFillColor(249, 250, 251);
   pdf.setDrawColor(229, 231, 235);
@@ -543,7 +699,7 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
   pdf.setTextColor(75, 85, 99);
-  pdf.text(invoice.clientEmail || 'Private High-Net-Worth Client', 20, 71);
+  pdf.text(invoice.clientEmail || 'Client Account Records', 20, 71);
   pdf.text(`Account ID: ${invoice.clientId}`, 20, 76);
 
   // Right Box: Project Estate
@@ -568,7 +724,7 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
 
   // Table Header
   let tableY = 90;
-  pdf.setFillColor(44, 36, 22);
+  pdf.setFillColor(pr, pg, pb);
   pdf.rect(15, tableY, 180, 8, 'F');
 
   pdf.setFont('helvetica', 'bold');
@@ -587,7 +743,6 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   ];
 
   items.forEach((item, index) => {
-    // Row background
     if (index % 2 === 1) {
       pdf.setFillColor(250, 250, 250);
       pdf.rect(15, tableY, 180, 8.5, 'F');
@@ -630,7 +785,7 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.text(`$${invoice.tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, tableY, { align: 'right' });
 
   tableY += 4;
-  pdf.setDrawColor(44, 36, 22);
+  pdf.setDrawColor(pr, pg, pb);
   pdf.setLineWidth(0.8);
   pdf.line(totalsX - 5, tableY, 195, tableY);
 
@@ -639,11 +794,11 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.setFontSize(10.5);
   pdf.setTextColor(17, 24, 39);
   pdf.text('Total Balance Due:', totalsX, tableY);
-  pdf.setTextColor(139, 115, 85);
+  pdf.setTextColor(ar, ag, ab);
   pdf.text(`$${invoice.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, tableY, { align: 'right' });
 
-  // Cryptographic Escrow Audit Seal Box
-  tableY += 16;
+  // Cryptographic Audit Seal Box
+  tableY += 14;
   pdf.setFillColor(249, 250, 251);
   pdf.setDrawColor(209, 213, 219);
   pdf.setLineWidth(0.4);
@@ -652,7 +807,7 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(7.5);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('VERTEX ARCHITECTURAL AUDIT & ESCROW SEAL', 20, tableY + 6);
+  pdf.text(tpl.sealTitle, 20, tableY + 6);
 
   pdf.setFont('courier', 'normal');
   pdf.setFontSize(6.5);
@@ -662,13 +817,22 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(7);
   pdf.setTextColor(75, 85, 99);
-  pdf.text(`Status: ${isPaid ? 'PAID & CERTIFIED SETTLED' : 'AUTHORIZED FOR DIRECT WIRE / ESCROW SETTLEMENT'}  •  Timestamp: ${new Date().toISOString()}`, 20, tableY + 18);
+  pdf.text(`Status: ${isPaid ? 'PAID & CERTIFIED SETTLED' : 'AUTHORIZED FOR DIRECT WIRE / ESCROW SETTLEMENT'}  •  Issuer: ${tpl.legalEntityName}`, 20, tableY + 18);
+
+  // Wire Instructions on PDF if available
+  if (tpl.invoiceWireInstructions) {
+    tableY += 26;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(107, 114, 128);
+    pdf.text(`Wire Instructions: ${tpl.invoiceWireInstructions}`, 15, tableY);
+  }
 
   // Footer note
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6.5);
   pdf.setTextColor(156, 163, 175);
-  const footerText = 'Thank you for partnering with VERTEX Architectural Studio. All architectural plans, specifications, and structural deliverables remain protected under California Architectural Property Rights until accounts are settled.';
+  const footerText = tpl.invoiceFooterDisclaimer;
   const wrappedFooter = pdf.splitTextToSize(footerText, 180);
   pdf.text(wrappedFooter, 15, 275);
 
@@ -676,25 +840,27 @@ export const downloadInvoicePdf = (invoice: Invoice): void => {
 };
 
 /**
- * Generates and downloads a vector PDF for Executive POS Thermal Slip
+ * Generates and downloads a vector PDF for Executive POS Thermal Slip with template customization
  */
-export const downloadPOSThermalSlipPdf = (tx: POSTransaction): void => {
+export const downloadPOSThermalSlipPdf = (tx: POSTransaction, templateConfig?: DocumentTemplate): void => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [100, 185] });
 
   // Top header
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(13);
+  pdf.setFontSize(12);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('VERTEX ARCHITECTURE', 50, 14, { align: 'center' });
+  pdf.text(tpl.companyName, 50, 14, { align: 'center' });
 
   pdf.setFontSize(7.5);
-  pdf.setTextColor(139, 115, 85);
-  pdf.text('EXECUTIVE TERMINAL POS', 50, 19, { align: 'center' });
+  const [ar, ag, ab] = hexToRgb(tpl.accentColor, [139, 115, 85]);
+  pdf.setTextColor(ar, ag, ab);
+  pdf.text(tpl.posSlipHeader, 50, 19, { align: 'center' });
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6.5);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('9454 Wilshire Blvd, Beverly Hills, CA  •  (310) 555-8392', 50, 24, { align: 'center' });
+  pdf.text(`${tpl.addressLine1}  •  ${tpl.phone}`, 50, 24, { align: 'center' });
 
   // Line
   pdf.setDrawColor(200, 200, 200);
@@ -772,7 +938,7 @@ export const downloadPOSThermalSlipPdf = (tx: POSTransaction): void => {
   pdf.rect(10, y, 80, 16, 'F');
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(6.5);
-  pdf.text('CRYPTOGRAPHIC RECEIPT SEAL', 50, y + 4.5, { align: 'center' });
+  pdf.text(tpl.sealTitle, 50, y + 4.5, { align: 'center' });
   pdf.setFont('courier', 'normal');
   pdf.setFontSize(5);
   const hash = tx.receiptHash.length > 40 ? tx.receiptHash.slice(0, 38) + '...' : tx.receiptHash;
@@ -785,7 +951,7 @@ export const downloadPOSThermalSlipPdf = (tx: POSTransaction): void => {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6);
   pdf.setTextColor(156, 163, 175);
-  pdf.text('*** CUSTOMER RECORD COPY ***', 50, y, { align: 'center' });
+  pdf.text(`*** ${tpl.posSlipFooter} ***`, 50, y, { align: 'center' });
 
   pdf.save(`POS_Slip_${tx.transactionNumber}.pdf`);
 };
@@ -793,23 +959,41 @@ export const downloadPOSThermalSlipPdf = (tx: POSTransaction): void => {
 /**
  * Generates and downloads a vector PDF for Legal Compliance Agreements
  */
-export const downloadLegalDocPdf = (doc: LegalDocument): void => {
+export const downloadLegalDocPdf = (doc: LegalDocument, templateConfig?: DocumentTemplate): void => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const cert = doc.signatureCertificate;
 
-  // Header
-  pdf.setFillColor(44, 36, 22);
+  const [pr, pg, pb] = hexToRgb(tpl.primaryColor, [44, 36, 22]);
+  const [ar, ag, ab] = hexToRgb(tpl.accentColor, [139, 115, 85]);
+
+  // Watermark on Legal Doc PDF
+  if (tpl.showWatermark && tpl.watermarkType !== 'none' && tpl.watermarkText) {
+    pdf.saveGraphicsState();
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(26);
+    const lightness = Math.round(255 - (tpl.watermarkOpacity * 255 * 1.8));
+    pdf.setTextColor(lightness, lightness, lightness);
+    pdf.text(tpl.watermarkText, 105, 150, {
+      align: 'center',
+      angle: tpl.watermarkAngle || -30
+    });
+    pdf.restoreGraphicsState();
+  }
+
+  // Header accent line
+  pdf.setFillColor(pr, pg, pb);
   pdf.rect(15, 12, 180, 2.5, 'F');
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
-  pdf.setTextColor(44, 36, 22);
-  pdf.text('VERTEX', 15, 22);
+  pdf.setTextColor(pr, pg, pb);
+  pdf.text(tpl.companyName, 15, 22);
 
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(139, 115, 85);
-  pdf.text('PROPRIETARY LEGAL & ARCHITECTURAL COMPLIANCE VAULT', 15, 27);
+  pdf.setTextColor(ar, ag, ab);
+  pdf.text(tpl.legalDocumentVaultHeader.toUpperCase(), 15, 27);
 
   // Doc info (Right)
   pdf.setFont('helvetica', 'bold');
@@ -835,15 +1019,15 @@ export const downloadLegalDocPdf = (doc: LegalDocument): void => {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(7.5);
   pdf.setTextColor(156, 163, 175);
-  pdf.text('PARTY OF FIRST PART (ARCHITECT)', 20, 46);
+  pdf.text('PARTY OF FIRST PART (DISCLOSING / ARCHITECT)', 20, 46);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(9.5);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('VERTEX Architectural Studio Inc.', 20, 52);
+  pdf.text(tpl.legalEntityName, 20, 52);
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(7.5);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('Beverly Hills Corporate Headquarters, CA', 20, 57);
+  pdf.text(tpl.addressLine1, 20, 57);
 
   // Party 2
   pdf.setFillColor(249, 250, 251);
@@ -863,7 +1047,7 @@ export const downloadLegalDocPdf = (doc: LegalDocument): void => {
   pdf.text(`Project Association: ${doc.projectName}`, 113, 57);
 
   // Document Content Box
-  let y = 68;
+  const y = 68;
   pdf.setFillColor(255, 255, 255);
   pdf.setDrawColor(229, 231, 235);
   pdf.roundedRect(15, y, 180, 140, 2, 2, 'FD');
@@ -873,19 +1057,19 @@ export const downloadLegalDocPdf = (doc: LegalDocument): void => {
   pdf.setTextColor(31, 41, 55);
 
   const wrappedContent = pdf.splitTextToSize(doc.content, 170);
-  pdf.text(wrappedContent.slice(0, 42), 20, y + 8); // Display first 42 lines neatly
+  pdf.text(wrappedContent.slice(0, 42), 20, y + 8);
 
   // Digital Signature Seal
   const sealY = 214;
   if (cert) {
-    pdf.setFillColor(240, 253, 244); // light green
+    pdf.setFillColor(240, 253, 244);
     pdf.setDrawColor(134, 239, 172);
     pdf.roundedRect(15, sealY, 180, 32, 2, 2, 'FD');
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8);
     pdf.setTextColor(20, 83, 45);
-    pdf.text('CRYPTOGRAPHIC DIGITAL SIGNATURE CERTIFICATE', 20, sealY + 6);
+    pdf.text(tpl.sealTitle, 20, sealY + 6);
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
@@ -909,41 +1093,58 @@ export const downloadLegalDocPdf = (doc: LegalDocument): void => {
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
     pdf.setTextColor(107, 114, 128);
-    pdf.text('Awaiting bilateral countersignature via VERTEX Digital Compliance Vault.', 20, sealY + 15);
+    pdf.text(`Awaiting bilateral countersignature via ${tpl.companyName} Compliance Vault.`, 20, sealY + 15);
   }
 
   // Footer note
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6.5);
   pdf.setTextColor(156, 163, 175);
-  pdf.text('Archived and certified under California Uniform Electronic Transactions Act (UETA) and Federal ESIGN Act.', 15, 275);
+  pdf.text(tpl.legalDocumentFooterDisclaimer, 15, 275);
 
   pdf.save(`${doc.documentNumber}_Executed_Agreement.pdf`);
 };
 
 /**
- * Generates and downloads a vector PDF for Executed Mutual NDA
+ * Generates and downloads a vector PDF for Executed Mutual NDA with template branding
  */
 export const downloadNdaPdf = (company: {
   name: string;
   registrationNumber?: string;
   ndaSignedAt?: string;
-}): void => {
+}, templateConfig?: DocumentTemplate): void => {
+  const tpl = getEffectiveTemplate(templateConfig);
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
+  const [pr, pg, pb] = hexToRgb(tpl.primaryColor, [44, 36, 22]);
+  const [ar, ag, ab] = hexToRgb(tpl.accentColor, [139, 115, 85]);
+
+  if (tpl.showWatermark && tpl.watermarkType !== 'none' && tpl.watermarkText) {
+    pdf.saveGraphicsState();
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(26);
+    const lightness = Math.round(255 - (tpl.watermarkOpacity * 255 * 1.8));
+    pdf.setTextColor(lightness, lightness, lightness);
+    pdf.text(tpl.watermarkText, 105, 150, {
+      align: 'center',
+      angle: tpl.watermarkAngle || -30
+    });
+    pdf.restoreGraphicsState();
+  }
+
   // Top header accent line
-  pdf.setFillColor(44, 36, 22);
+  pdf.setFillColor(pr, pg, pb);
   pdf.rect(15, 12, 180, 2.5, 'F');
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
-  pdf.setTextColor(44, 36, 22);
-  pdf.text('VERTEX', 15, 22);
+  pdf.setTextColor(pr, pg, pb);
+  pdf.text(tpl.companyName, 15, 22);
 
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(139, 115, 85);
-  pdf.text('ARCHITECTURAL STUDIO & CONSTRUCTION MANAGEMENT', 15, 27);
+  pdf.setTextColor(ar, ag, ab);
+  pdf.text(tpl.entityTypeTagline.toUpperCase(), 15, 27);
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(12);
@@ -953,7 +1154,7 @@ export const downloadNdaPdf = (company: {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
   pdf.setTextColor(107, 114, 128);
-  pdf.text('California Uniform Trade Secrets Act Compliant', 195, 27, { align: 'right' });
+  pdf.text(tpl.legalDocumentJurisdiction, 195, 27, { align: 'right' });
 
   pdf.setDrawColor(229, 231, 235);
   pdf.line(15, 33, 195, 33);
@@ -971,7 +1172,7 @@ export const downloadNdaPdf = (company: {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(9);
   pdf.setTextColor(17, 24, 39);
-  pdf.text('Party 1: VERTEX Architectural Studio Inc. (Disclosing / Proprietary Architect)', 20, 50);
+  pdf.text(`Party 1: ${tpl.legalEntityName} (Disclosing / Proprietary Entity)`, 20, 50);
   pdf.text(`Party 2: ${company.name} (Recipient Partner / Vendor)`, 20, 56);
 
   pdf.setFont('helvetica', 'normal');
@@ -979,12 +1180,11 @@ export const downloadNdaPdf = (company: {
   pdf.setTextColor(75, 85, 99);
   pdf.text(`Registration: ${company.registrationNumber || 'CORP-STATE-CA-83921'}  •  Executed Date: ${company.ndaSignedAt || '2026-09-01'}  •  Tier: High Concurrent Restriction`, 20, 62);
 
-  // Clauses
   let y = 73;
   const clauses = [
     {
       title: '1. PURPOSE & SCOPE',
-      body: 'The parties intend to collaborate regarding luxury architectural design, structural engineering, and procurement services. In connection with this purpose, confidential CAD drawings, BIM files, client identities, and pricing matrices will be disclosed.'
+      body: `The parties intend to collaborate regarding luxury architectural design, structural engineering, and procurement services with ${tpl.companyName}. In connection with this purpose, confidential CAD drawings, BIM files, client identities, and pricing matrices will be disclosed.`
     },
     {
       title: '2. DEFINITION OF CONFIDENTIAL INFORMATION',
@@ -992,18 +1192,18 @@ export const downloadNdaPdf = (company: {
     },
     {
       title: '3. NON-DISCLOSURE OBLIGATIONS',
-      body: 'The Receiving Party covenants to hold all Confidential Information in strictest confidence and not disclose it to any third party without prior written consent from VERTEX Studio.'
+      body: `The Receiving Party covenants to hold all Confidential Information in strictest confidence and not disclose it to any third party without prior written consent from ${tpl.companyName}.`
     },
     {
       title: '4. REMEDIES & GOVERNING LAW',
-      body: 'Any unauthorized dissemination shall cause irreparable injury. This covenant is governed by the laws of the State of California under California Civil Code § 3426.'
+      body: `Any unauthorized dissemination shall cause irreparable injury. This covenant is governed under ${tpl.legalDocumentJurisdiction}.`
     }
   ];
 
   clauses.forEach(clause => {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
-    pdf.setTextColor(44, 36, 22);
+    pdf.setTextColor(pr, pg, pb);
     pdf.text(clause.title, 15, y);
     y += 4.5;
 
@@ -1024,7 +1224,7 @@ export const downloadNdaPdf = (company: {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8);
   pdf.setTextColor(20, 83, 45);
-  pdf.text('CRYPTOGRAPHIC ARCHITECTURAL TAMPER SEAL', 20, y + 6);
+  pdf.text(tpl.sealTitle, 20, y + 6);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(7.5);
@@ -1034,13 +1234,104 @@ export const downloadNdaPdf = (company: {
   pdf.setFont('courier', 'normal');
   pdf.setFontSize(6.5);
   pdf.text('SHA-256: 4b9a81e7d62f01ac29f829871182319b9812a8149814c810981b948710928a3f', 20, y + 18);
-  pdf.text('ARCHIVE ID: VTX-NDA-SEC-CERTIFIED-99120', 20, y + 23);
+  pdf.text('ARCHIVE ID: SEC-CERTIFIED-COVENANT-RECORD', 20, y + 23);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6.5);
   pdf.setTextColor(156, 163, 175);
-  pdf.text('Executed bilateral agreement recorded in VERTEX Proprietary Vault.', 15, 275);
+  pdf.text(`Executed bilateral agreement recorded in ${tpl.companyName} Compliance Vault.`, 15, 275);
 
-  pdf.save(`VERTEX_Executed_NDA_${company.name.replace(/\s+/g, '_')}.pdf`);
+  pdf.save(`${tpl.companyName.replace(/\s+/g, '_')}_Executed_NDA_${company.name.replace(/\s+/g, '_')}.pdf`);
 };
 
+/**
+ * Generates an open-source downloadable HTML template file with variables
+ */
+export const downloadHtmlTemplateCode = (tpl: DocumentTemplate): void => {
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{documentTitle}} - ${tpl.companyName}</title>
+  <style>
+    @page { margin: 15mm; size: auto; }
+    body {
+      font-family: ${tpl.fontFamily === 'serif' ? 'Georgia, serif' : tpl.fontFamily === 'mono' ? 'Courier, monospace' : 'Arial, sans-serif'};
+      color: #1a1a1a;
+      background: #ffffff;
+      padding: 30px;
+      line-height: 1.6;
+    }
+    .header {
+      border-bottom: 2px solid ${tpl.primaryColor};
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .brand-name {
+      font-size: 26px;
+      font-weight: bold;
+      color: ${tpl.primaryColor};
+    }
+    .tagline {
+      font-size: 12px;
+      color: ${tpl.accentColor};
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .watermark {
+      ${tpl.showWatermark ? `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(${tpl.watermarkAngle}deg);
+      font-size: 46px;
+      font-weight: bold;
+      color: #000;
+      opacity: ${tpl.watermarkOpacity};
+      pointer-events: none;
+      z-index: 0;
+      ` : 'display: none;'}
+    }
+    .footer {
+      margin-top: 40px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 15px;
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="watermark">${tpl.watermarkText || tpl.companyName}</div>
+  <div class="header">
+    <div>
+      <div class="brand-name">${tpl.companyName}</div>
+      <div class="tagline">${tpl.entityTypeTagline}</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+        ${tpl.addressLine1} &bull; ${tpl.phone} &bull; ${tpl.email}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 18px; font-weight: bold;">{{documentTitle}}</div>
+      <div style="font-size: 12px; color: #64748b;">Ref: {{documentNumber}}</div>
+      <div style="font-size: 12px; color: #64748b;">Date: {{issueDate}}</div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Document content goes here -->
+    {{documentBody}}
+  </main>
+
+  <div class="footer">
+    ${tpl.invoiceFooterDisclaimer}
+    <div style="margin-top: 5px;">License: ${tpl.architectLicenseNumber || 'N/A'} &bull; Tax ID: ${tpl.taxRegistrationNumber}</div>
+  </div>
+</body>
+</html>`;
+
+  downloadFile(`${tpl.name.toLowerCase().replace(/\s+/g, '_')}_template.html`, htmlContent, 'text/html');
+};

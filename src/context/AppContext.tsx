@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   User,
   UserRole,
@@ -35,8 +35,10 @@ import {
   POSTransaction,
   LegalDocument,
   LegalDocumentStatus,
-  CatalogItem
+  CatalogItem,
+  DocumentTemplate
 } from '../types';
+import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import {
   SEED_USERS,
   SEED_PROJECTS,
@@ -242,6 +244,17 @@ interface AppContextType {
     signerData: { signerName: string; signerRole: string; signatureDataUrl?: string; ipAddress?: string }
   ) => void;
   updateLegalDocumentStatus: (documentId: string, status: LegalDocumentStatus) => void;
+
+  // Document & Statements Template Studio (Open Source Customizable Branding & Watermarks)
+  documentTemplates: DocumentTemplate[];
+  activeTemplateId: string;
+  activeDocumentTemplate: DocumentTemplate;
+  addDocumentTemplate: (template: Omit<DocumentTemplate, 'id' | 'updatedAt'>) => DocumentTemplate;
+  updateDocumentTemplate: (id: string, updates: Partial<DocumentTemplate>) => void;
+  deleteDocumentTemplate: (id: string) => void;
+  setActiveDocumentTemplate: (id: string) => void;
+  resetTemplatesToDefault: () => void;
+  importDocumentTemplate: (templateData: any) => DocumentTemplate;
 
   // Change Orders
   changeOrders: ChangeOrder[];
@@ -462,6 +475,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>(() => loadFromStorage('catalogItems', SEED_CATALOG_ITEMS));
   const [legalDocuments, setLegalDocuments] = useState<LegalDocument[]>(() => loadFromStorage('legalDocuments', SEED_LEGAL_DOCUMENTS));
   const [companies, setCompanies] = useState<Company[]>(() => loadFromStorage('companies', SEED_COMPANIES));
+  const [documentTemplates, setDocumentTemplates] = useState<DocumentTemplate[]>(() =>
+    loadFromStorage('vertex_document_templates', DEFAULT_TEMPLATES)
+  );
+  const [activeTemplateId, setActiveTemplateIdState] = useState<string>(() =>
+    loadFromStorage('vertex_active_template_id', DEFAULT_TEMPLATES[0].id)
+  );
   const [activeSessions, setActiveSessions] = useState<UserSession[]>(() => loadFromStorage('activeSessions', SEED_SESSIONS));
   const [global2FAEnforced, setGlobal2FAEnforced] = useState<boolean>(() => loadFromStorage('global2FAEnforced', true));
 
@@ -497,6 +516,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => saveToStorage('teamMembers', teamMembers), [teamMembers]);
   useEffect(() => saveToStorage('clients', clients), [clients]);
   useEffect(() => saveToStorage('companies', companies), [companies]);
+  useEffect(() => saveToStorage('vertex_document_templates', documentTemplates), [documentTemplates]);
+  useEffect(() => saveToStorage('vertex_active_template_id', activeTemplateId), [activeTemplateId]);
   useEffect(() => saveToStorage('activeSessions', activeSessions), [activeSessions]);
   useEffect(() => saveToStorage('global2FAEnforced', global2FAEnforced), [global2FAEnforced]);
   useEffect(() => saveToStorage('rolePolicies', rolePolicies), [rolePolicies]);
@@ -2309,6 +2330,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newChannel;
   };
 
+  const activeDocumentTemplate = useMemo(() => {
+    return documentTemplates.find(t => t.id === activeTemplateId) || documentTemplates[0] || DEFAULT_TEMPLATES[0];
+  }, [documentTemplates, activeTemplateId]);
+
+  const addDocumentTemplate = (templateData: Omit<DocumentTemplate, 'id' | 'updatedAt'>): DocumentTemplate => {
+    const newTemplate: DocumentTemplate = {
+      ...templateData,
+      id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      updatedAt: new Date().toISOString()
+    };
+    setDocumentTemplates(prev => [newTemplate, ...prev]);
+    setActiveTemplateIdState(newTemplate.id);
+    addToast('success', `Created template "${newTemplate.name}". Activated as default.`);
+    return newTemplate;
+  };
+
+  const updateDocumentTemplate = (id: string, updates: Partial<DocumentTemplate>) => {
+    setDocumentTemplates(prev => prev.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
+    addToast('success', 'Document & Watermark template updated.');
+  };
+
+  const deleteDocumentTemplate = (id: string) => {
+    if (documentTemplates.length <= 1) {
+      addToast('error', 'Cannot delete the only available document template.');
+      return;
+    }
+    setDocumentTemplates(prev => {
+      const filtered = prev.filter(t => t.id !== id);
+      if (activeTemplateId === id && filtered.length > 0) {
+        setActiveTemplateIdState(filtered[0].id);
+      }
+      return filtered;
+    });
+    addToast('info', 'Document template deleted.');
+  };
+
+  const setActiveDocumentTemplate = (id: string) => {
+    const exists = documentTemplates.some(t => t.id === id);
+    if (exists) {
+      setActiveTemplateIdState(id);
+      addToast('success', 'Active document branding template updated.');
+    }
+  };
+
+  const resetTemplatesToDefault = () => {
+    setDocumentTemplates(DEFAULT_TEMPLATES);
+    setActiveTemplateIdState(DEFAULT_TEMPLATES[0].id);
+    addToast('info', 'Reset all document templates to open-source standard presets.');
+  };
+
+  const importDocumentTemplate = (data: any): DocumentTemplate => {
+    const base = DEFAULT_TEMPLATES[0];
+    const validated: DocumentTemplate = {
+      ...base,
+      ...data,
+      id: 'tpl_imported_' + Date.now(),
+      name: data.name ? `${data.name} (Custom Import)` : 'Imported Company Template',
+      isOpenSourcePreset: false,
+      updatedAt: new Date().toISOString()
+    };
+    setDocumentTemplates(prev => [validated, ...prev]);
+    setActiveTemplateIdState(validated.id);
+    addToast('success', `Imported document template "${validated.name}".`);
+    return validated;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -2364,6 +2451,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         uploadLegalDocument,
         signLegalDocument,
         updateLegalDocumentStatus,
+        documentTemplates,
+        activeTemplateId,
+        activeDocumentTemplate,
+        addDocumentTemplate,
+        updateDocumentTemplate,
+        deleteDocumentTemplate,
+        setActiveDocumentTemplate,
+        resetTemplatesToDefault,
+        importDocumentTemplate,
         changeOrders,
         addChangeOrder,
         updateChangeOrderStatus,
