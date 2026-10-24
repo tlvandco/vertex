@@ -1029,7 +1029,7 @@ export const FinancialsView: React.FC = () => {
       {activeTab === 'pos' && (
         <div className={isPosMaximized ? "fixed inset-0 z-50 bg-[#FDFBF7] p-6 overflow-y-auto select-none space-y-6" : "space-y-6"}>
           {/* Main POS Grid with space optimization */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative">
             {/* Left: Quick Catalog & Custom Item (9 cols on xl/2xl or 12 cols when collapsed) */}
             <div className={`${posRegisterCollapsed ? 'col-span-12' : 'lg:col-span-8 xl:col-span-9 2xl:col-span-9'} space-y-4 transition-all duration-300`}>
               <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-xs">
@@ -1662,22 +1662,33 @@ export const FinancialsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Active POS Register & Checkout Terminal */}
+            {/* Right: Active POS Register & Checkout Terminal - LOCKED & STICKY IN VIEWPORT */}
             {!posRegisterCollapsed && (
-              <div className="lg:col-span-4 xl:col-span-3 2xl:col-span-3 space-y-4 transition-all duration-300">
-                <div className="bg-[#2C2416] text-white rounded-3xl p-6 shadow-xl border border-amber-900/30 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold">
+              <div
+                id="pos-register-terminal"
+                className={`lg:col-span-4 xl:col-span-3 2xl:col-span-3 transition-all duration-300 z-20 self-start ${
+                  isPosMaximized ? 'lg:sticky lg:top-4' : 'lg:sticky lg:top-20'
+                }`}
+              >
+                <div className="bg-[#2C2416] text-white rounded-3xl shadow-2xl border border-amber-900/40 flex flex-col max-h-[calc(100vh-6rem)] overflow-hidden">
+                  {/* Fixed Pinned Register Header */}
+                  <div className="p-4 pb-3 border-b border-white/10 shrink-0 bg-[#221a0e]/95 backdrop-blur-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold shrink-0">
                           <CreditCard className="w-4 h-4" />
                         </div>
-                        <div>
-                          <h3 className="font-serif font-bold text-[#D4AF37] text-base">VERTEX POS Register</h3>
-                          <p className="text-[10px] text-gray-400 font-mono">Terminal: Beverly Hills Studio 01</p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-serif font-bold text-[#D4AF37] text-sm sm:text-base truncate">POS Register</h3>
+                            <span className="text-[9px] font-mono bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded-full border border-emerald-500/30 font-bold shrink-0">
+                              LOCKED
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-400 font-mono truncate">Terminal: Beverly Hills Studio 01</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setPosRegisterCollapsed(true)}
@@ -1691,229 +1702,284 @@ export const FinancialsView: React.FC = () => {
                         </span>
                       </div>
                     </div>
-
-                  {/* Project Target */}
-                  <div className="mb-4">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
-                      Billing Estate Project
-                    </label>
-                    <select
-                      value={posProjectId}
-                      onChange={e => setPosProjectId(e.target.value)}
-                      className="w-full p-2.5 bg-black/40 text-white border border-white/10 rounded-xl text-xs outline-none focus:border-[#D4AF37]"
-                    >
-                      {clientProjects.map(p => (
-                        <option key={p.id} value={p.id} className="bg-gray-900 text-white">
-                          {p.name} - Client: {p.clientName}
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
-                  {/* Cart Itemization List */}
-                  <div className="space-y-2 mb-4 max-h-56 overflow-y-auto pr-1">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">
-                      Itemized Register ({posCart.length} items)
-                    </span>
+                  {/* Scrollable Register Body (Project, Cart, Calculations, Payment Options) */}
+                  <div className="p-4 overflow-y-auto flex-1 space-y-3.5 overscroll-contain focus:outline-none custom-scrollbar">
+                    {/* Project Target */}
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
+                        Billing Estate Project
+                      </label>
+                      <select
+                        value={posProjectId}
+                        onChange={e => setPosProjectId(e.target.value)}
+                        className="w-full p-2.5 bg-black/40 text-white border border-white/10 rounded-xl text-xs outline-none focus:border-[#D4AF37] truncate"
+                      >
+                        {clientProjects.map(p => (
+                          <option key={p.id} value={p.id} className="bg-gray-900 text-white">
+                            {p.name} - Client: {p.clientName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                    {posCart.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-gray-500 italic border border-dashed border-white/10 rounded-2xl">
-                        Register is clear. Select items from catalog.
+                    {/* Cart Itemization List */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                          Itemized Register ({posCart.length})
+                        </span>
+                        {posCart.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setPosCart([])}
+                            className="text-[10px] text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                          >
+                            Clear All
+                          </button>
+                        )}
                       </div>
-                    ) : (
-                      posCart.map(item => (
-                        <div
-                          key={item.id}
-                          className="bg-black/30 p-2.5 rounded-xl border border-white/5 flex items-center justify-between text-xs"
-                        >
-                          <div className="min-w-0 flex-1 pr-2">
-                            <p className="font-bold text-white truncate">{item.description}</p>
-                            <p className="text-[10px] text-gray-400 font-mono">${item.unitPrice.toLocaleString()} each</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded-lg">
-                              <button
-                                onClick={() => handleUpdateCartQty(item.id, -1)}
-                                className="text-gray-300 hover:text-white font-bold px-1"
-                              >
-                                -
-                              </button>
-                              <span className="text-xs font-mono font-bold px-1">{item.quantity}</span>
-                              <button
-                                onClick={() => handleUpdateCartQty(item.id, 1)}
-                                className="text-gray-300 hover:text-white font-bold px-1"
-                              >
-                                +
-                              </button>
-                            </div>
-                            <span className="font-mono font-bold text-[#D4AF37] w-16 text-right">
-                              ${item.total.toLocaleString()}
-                            </span>
-                            <button
-                              onClick={() => handleRemoveCartItem(item.id)}
-                              className="text-gray-500 hover:text-red-400 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+
+                      {posCart.length === 0 ? (
+                        <div className="py-7 px-3 text-center text-xs text-gray-500 italic border border-dashed border-white/10 rounded-2xl bg-black/20">
+                          Register is clear. Select items from catalog below.
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                          {posCart.map(item => (
+                            <div
+                              key={item.id}
+                              className="bg-black/35 p-2.5 rounded-xl border border-white/10 flex items-center justify-between text-xs"
+                            >
+                              <div className="min-w-0 flex-1 pr-2">
+                                <p className="font-bold text-white truncate">{item.description}</p>
+                                <p className="text-[10px] text-gray-400 font-mono">${item.unitPrice.toLocaleString()} each</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <div className="flex items-center gap-0.5 bg-white/10 px-1 py-0.5 rounded-lg">
+                                  <button
+                                    onClick={() => handleUpdateCartQty(item.id, -1)}
+                                    className="text-gray-300 hover:text-white font-bold px-1.5 py-0.5 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-xs font-mono font-bold px-1">{item.quantity}</span>
+                                  <button
+                                    onClick={() => handleUpdateCartQty(item.id, 1)}
+                                    className="text-gray-300 hover:text-white font-bold px-1.5 py-0.5 cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <span className="font-mono font-bold text-[#D4AF37] min-w-14 text-right">
+                                  ${item.total.toLocaleString()}
+                                </span>
+                                <button
+                                  onClick={() => handleRemoveCartItem(item.id)}
+                                  className="text-gray-500 hover:text-red-400 p-1 cursor-pointer"
+                                  title="Remove item"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Calculations */}
-                  <div className="bg-black/40 p-3 rounded-2xl border border-white/10 space-y-1.5 text-xs font-mono mb-4">
-                    <div className="flex justify-between text-gray-400">
-                      <span>Subtotal:</span>
-                      <span>${posSubtotal.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-400">
-                      <span>Tax (8.0%):</span>
-                      <span>${posTax.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-400 items-center">
-                      <span>Escrow Buffer:</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setPosContingencyRate(0)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] ${posContingencyRate === 0 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400'}`}
-                        >
-                          0%
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPosContingencyRate(0.05)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] ${posContingencyRate === 0.05 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400'}`}
-                        >
-                          5%
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPosContingencyRate(0.1)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] ${posContingencyRate === 0.1 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400'}`}
-                        >
-                          10%
-                        </button>
-                        <span className="ml-1">${posContingency.toLocaleString()}</span>
+                    {/* Calculations */}
+                    <div className="bg-black/40 p-3 rounded-2xl border border-white/10 space-y-1.5 text-xs font-mono">
+                      <div className="flex justify-between text-gray-400">
+                        <span>Subtotal:</span>
+                        <span>${posSubtotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-400">
+                        <span>Tax (8.0%):</span>
+                        <span>${posTax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-400 items-center">
+                        <span>Escrow Buffer:</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPosContingencyRate(0)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] cursor-pointer ${
+                              posContingencyRate === 0 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            0%
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPosContingencyRate(0.05)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] cursor-pointer ${
+                              posContingencyRate === 0.05 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            5%
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPosContingencyRate(0.1)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] cursor-pointer ${
+                              posContingencyRate === 0.1 ? 'bg-[#D4AF37] text-black font-bold' : 'bg-white/10 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            10%
+                          </button>
+                          <span className="ml-1">${posContingency.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between font-bold text-white pt-2 border-t border-white/10 text-sm">
+                        <span className="font-serif text-[#D4AF37]">Total Settlement:</span>
+                        <span className="text-[#D4AF37] text-base">${posTotal.toLocaleString()}</span>
                       </div>
                     </div>
-                    <div className="flex justify-between font-bold text-white pt-2 border-t border-white/10 text-sm">
-                      <span className="font-serif text-[#D4AF37]">Total Settlement:</span>
-                      <span className="text-[#D4AF37] text-base">${posTotal.toLocaleString()}</span>
+
+                    {/* Payment Gateway Options */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] uppercase font-bold text-gray-400">
+                        Payment Terminal Gateway
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setPosPaymentMethod('CARD_TAP')}
+                          className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                            posPaymentMethod === 'CARD_TAP'
+                              ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
+                              : 'border-white/10 text-gray-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-bold truncate">Contactless</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPosPaymentMethod('WIRE_ESCROW')}
+                          className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                            posPaymentMethod === 'WIRE_ESCROW'
+                              ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
+                              : 'border-white/10 text-gray-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <Building2 className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-bold truncate">Wire Escrow</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPosPaymentMethod('ACH_DIRECT')}
+                          className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                            posPaymentMethod === 'ACH_DIRECT'
+                              ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
+                              : 'border-white/10 text-gray-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-bold truncate">Direct ACH</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPosPaymentMethod('CARD_ON_FILE')}
+                          className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
+                            posPaymentMethod === 'CARD_ON_FILE'
+                              ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
+                              : 'border-white/10 text-gray-400 hover:bg-white/5'
+                          }`}
+                        >
+                          <Lock className="w-3.5 h-3.5 shrink-0" />
+                          <span className="font-bold truncate">Card on File</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Payment Gateway Options */}
-                  <div className="space-y-2 mb-4">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400">
-                      Payment Terminal Gateway
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setPosPaymentMethod('CARD_TAP')}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                          posPaymentMethod === 'CARD_TAP'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
-                            : 'border-white/10 text-gray-400 hover:bg-white/5'
-                        }`}
-                      >
-                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                        <span className="font-bold truncate">Contactless / Chip</span>
-                      </button>
+                  {/* Pinned Checkout Action Footer - ALWAYS VISIBLE */}
+                  <div className="p-4 pt-3 border-t border-white/10 shrink-0 bg-[#221a0e]/95 backdrop-blur-xs">
+                    <button
+                      onClick={handleProcessCheckout}
+                      disabled={posCart.length === 0 || posProcessing}
+                      className="w-full py-3.5 bg-[#D4AF37] hover:bg-[#B8860B] active:scale-98 disabled:opacity-40 text-black font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer"
+                    >
+                      {posProcessing ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>{isClient ? 'Processing Payment...' : 'Authorizing & Clearing Escrow...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>{isClient ? `Pay $${posTotal.toLocaleString()}` : `Authorize & Charge $${posTotal.toLocaleString()}`}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                      <button
-                        type="button"
-                        onClick={() => setPosPaymentMethod('WIRE_ESCROW')}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                          posPaymentMethod === 'WIRE_ESCROW'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
-                            : 'border-white/10 text-gray-400 hover:bg-white/5'
-                        }`}
-                      >
-                        <Building2 className="w-3.5 h-3.5 shrink-0" />
-                        <span className="font-bold truncate">Direct Wire Escrow</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPosPaymentMethod('ACH_DIRECT')}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                          posPaymentMethod === 'ACH_DIRECT'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
-                            : 'border-white/10 text-gray-400 hover:bg-white/5'
-                        }`}
-                      >
-                        <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                        <span className="font-bold truncate">Institutional ACH</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPosPaymentMethod('CARD_ON_FILE')}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                          posPaymentMethod === 'CARD_ON_FILE'
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/20 text-[#D4AF37]'
-                            : 'border-white/10 text-gray-400 hover:bg-white/5'
-                        }`}
-                      >
-                        <Lock className="w-3.5 h-3.5 shrink-0" />
-                        <span className="font-bold truncate">Amex Card on File</span>
-                      </button>
+            {/* Mobile Floating POS Summary & Checkout Dock (Screen < lg) */}
+            {!posRegisterCollapsed && posCart.length > 0 && (
+              <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40 bg-[#2C2416]/95 backdrop-blur-md border border-[#D4AF37]/60 text-white p-3 px-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold shrink-0">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-white truncate">
+                      {posCart.length} {posCart.length === 1 ? 'item' : 'items'} in Register
+                    </div>
+                    <div className="text-xs font-mono font-bold text-[#D4AF37]">
+                      ${posTotal.toLocaleString()}
                     </div>
                   </div>
                 </div>
-
-                {/* Process Button */}
                 <button
-                  onClick={handleProcessCheckout}
-                  disabled={posCart.length === 0 || posProcessing}
-                  className="w-full py-3.5 bg-[#D4AF37] hover:bg-[#B8860B] disabled:opacity-40 text-black font-bold rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 text-sm cursor-pointer"
+                  type="button"
+                  onClick={() => {
+                    const reg = document.getElementById('pos-register-terminal');
+                    reg?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-3.5 py-1.5 bg-[#D4AF37] hover:bg-amber-400 text-black text-xs font-bold rounded-xl shadow-sm cursor-pointer flex items-center gap-1 shrink-0"
                 >
-                  {posProcessing ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>{isClient ? 'Processing Payment...' : 'Authorizing Reader & Clearing Escrow...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>{isClient ? `Pay $${posTotal.toLocaleString()}` : `Authorize & Charge $${posTotal.toLocaleString()}`}</span>
-                    </>
-                  )}
+                  <span>Go to Checkout</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Collapsed Register Quick Dock */}
-          {posRegisterCollapsed && (
-            <div className="fixed bottom-6 right-6 z-40 bg-[#2C2416] border border-[#D4AF37]/60 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-200 backdrop-blur-md">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold">
-                  <CreditCard className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase font-mono tracking-wider">Active POS Register</div>
-                  <div className="text-sm font-bold text-[#D4AF37]">
-                    {posCart.length} Items • ${posCart.reduce((s, i) => s + i.total, 0).toLocaleString()}
+            {/* Collapsed Register Quick Dock */}
+            {posRegisterCollapsed && (
+              <div className="fixed bottom-6 right-6 z-40 bg-[#2C2416] border border-[#D4AF37]/60 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-200 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center font-bold">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-gray-400 uppercase font-mono tracking-wider">Active POS Register</div>
+                    <div className="text-sm font-bold text-[#D4AF37]">
+                      {posCart.length} Items • ${posCart.reduce((s, i) => s + i.total, 0).toLocaleString()}
+                    </div>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setPosRegisterCollapsed(false)}
+                  className="px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-black font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+                >
+                  <span>Expand Register</span>
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setPosRegisterCollapsed(false)}
-                className="px-4 py-2 bg-[#D4AF37] hover:bg-amber-400 text-black font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
-              >
-                <span>Expand Register</span>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 3: LEGAL PAPERWORK & DIGITAL SIGNATURE VAULT */}
@@ -2927,297 +2993,303 @@ export const FinancialsView: React.FC = () => {
       {/* ADD NEW ARCHITECTURAL CATALOG ITEM MODAL */}
       {/* ========================================================================= */}
       {isAddCatalogItemOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-amber-100 animate-in zoom-in-95 my-8">
-            <div className="flex items-start justify-between pb-3 mb-4 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6 overscroll-contain">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200/90 flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Sticky Pinned Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm flex items-start justify-between shrink-0">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#8B7355] block">
                   Firm Master Catalog
                 </span>
-                <h3 className="text-lg font-serif font-bold text-gray-900 mt-0.5">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-gray-900 mt-0.5">
                   Add Specification / Procurement Item
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddCatalogItemOpen(false)}
-                className="text-gray-400 hover:text-black p-1 text-lg font-bold cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateCatalogItem} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Service / Specification Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Murano Handblown Glass Chandelier Lot Inspection"
-                  value={newItemTitle}
-                  onChange={e => setNewItemTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:border-[#D4AF37] bg-white font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Flexible Scrollable Modal Form Body */}
+            <form onSubmit={handleCreateCatalogItem} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 overflow-y-auto flex-1 space-y-4 overscroll-contain focus:outline-none custom-scrollbar">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={newItemCategory}
-                    onChange={e => setNewItemCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
-                  >
-                    <option value="Procurement Sample">Procurement Sample</option>
-                    <option value="Design Technology">Design Technology</option>
-                    <option value="Material Fabrication">Material Fabrication</option>
-                    <option value="Municipal Filing">Municipal Filing</option>
-                    <option value="Engineering Review">Engineering Review</option>
-                    <option value="Escrow Retainer">Escrow Retainer</option>
-                    <option value="Electrical Design">Electrical Design</option>
-                    <option value="Site Survey">Site Survey</option>
-                    <option value="CUSTOM">+ Custom Category...</option>
-                  </select>
-                </div>
-
-                {newItemCategory === 'CUSTOM' ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Custom Category Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Landscape Architecture"
-                      value={newItemCustomCategory}
-                      onChange={e => setNewItemCustomCategory(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      SKU / Spec Code (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. PRC-GLAS-14"
-                      value={newItemSku}
-                      onChange={e => setNewItemSku(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono uppercase"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Base Unit Price ($ USD) *
+                    Service / Specification Title *
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     required
-                    min={1}
-                    value={newItemPrice || ''}
-                    onChange={e => setNewItemPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
+                    placeholder="e.g. Murano Handblown Glass Chandelier Lot Inspection"
+                    value={newItemTitle}
+                    onChange={e => setNewItemTitle(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none focus:border-[#D4AF37] bg-white font-medium"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Pricing Unit
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Per Inspection, Fixed Fee, Per Session"
-                    value={newItemUnit}
-                    onChange={e => setNewItemUnit(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Lead Time / Turnaround
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 3 Business Days, Immediate, 2 Weeks"
-                    value={newItemLeadTime}
-                    onChange={e => setNewItemLeadTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Search Tags (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Glass, Lighting, Italy, Luxury"
-                    value={newItemTags}
-                    onChange={e => setNewItemTags(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* INVENTORY MANAGEMENT & EXISTING QR CODE SECTION */}
-              <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-[#8B7355]" />
-                    <span className="text-xs font-bold text-[#2C2416]">Inventory Management & QR Association</span>
-                  </div>
-                  <span className="text-[10px] bg-white text-[#8B7355] px-2 py-0.5 rounded-full font-mono border border-amber-200">
-                    Live Stock Sync
-                  </span>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold text-gray-700">
-                      Existing QR Code / Serial Key
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Category *
                     </label>
-                    <span className="text-[10px] text-gray-500">Scan or paste physical package QR</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="e.g. QR-PRC-SLAB-01 or paste existing supplier QR code..."
-                      value={newItemQrCode}
-                      onChange={e => handleQrCodeInputChange(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white focus:border-[#D4AF37]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const sampleQr = catalogItems.find(i => i.qrCode)?.qrCode || 'QR-PRC-SLAB-01';
-                        handleQrCodeInputChange(sampleQr);
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B7355] hover:text-black font-semibold cursor-pointer underline"
+                    <select
+                      value={newItemCategory}
+                      onChange={e => setNewItemCategory(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
                     >
-                      Use Sample Existing QR
-                    </button>
+                      <option value="Procurement Sample">Procurement Sample</option>
+                      <option value="Design Technology">Design Technology</option>
+                      <option value="Material Fabrication">Material Fabrication</option>
+                      <option value="Municipal Filing">Municipal Filing</option>
+                      <option value="Engineering Review">Engineering Review</option>
+                      <option value="Escrow Retainer">Escrow Retainer</option>
+                      <option value="Electrical Design">Electrical Design</option>
+                      <option value="Site Survey">Site Survey</option>
+                      <option value="CUSTOM">+ Custom Category...</option>
+                    </select>
                   </div>
 
-                  {/* Recognition Alert for Existing QR Code */}
-                  {existingQrMatchedItem && (
-                    <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl flex flex-col gap-1.5 animate-in fade-in duration-150">
-                      <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Existing QR Code Recognized in Inventory!</span>
-                      </div>
-                      <p className="text-[11px] text-emerald-900 leading-tight">
-                        Matched: <strong>{existingQrMatchedItem.title}</strong> (SKU: {existingQrMatchedItem.sku}) • Current Stock: {existingQrMatchedItem.inventoryCount ?? 10} units at {existingQrMatchedItem.warehouseLocation || 'Studio Vault A-1'}.
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNewItemTitle(existingQrMatchedItem.title);
-                            setNewItemPrice(existingQrMatchedItem.price);
-                            setNewItemCategory(existingQrMatchedItem.category);
-                            setNewItemSku(existingQrMatchedItem.sku);
-                            setNewItemUnit(existingQrMatchedItem.unit || 'Per Unit');
-                            setNewItemDescription(existingQrMatchedItem.description || '');
-                            setNewItemWarehouseLocation(existingQrMatchedItem.warehouseLocation || 'Studio Vault A-1');
-                            setNewItemInventoryCount(existingQrMatchedItem.inventoryCount ?? 10);
-                            setNewItemMinStock(existingQrMatchedItem.minStockLevel || 3);
-                            addToast('info', `Imported specs for ${existingQrMatchedItem.title} to manage inventory using this existing QR`);
-                          }}
-                          className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-[#8B7355] border border-amber-300 rounded-lg text-[10px] font-bold cursor-pointer"
-                        >
-                          Use for Inventory & Auto-Fill Specs
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateCatalogItemStock(existingQrMatchedItem.id, (existingQrMatchedItem.inventoryCount ?? 10) + 5);
-                            addToast('success', `Restocked +5 units to ${existingQrMatchedItem.title} using existing QR code`);
-                            setIsAddCatalogItemOpen(false);
-                          }}
-                          className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold cursor-pointer"
-                        >
-                          Quick Restock +5 Units
-                        </button>
-                        <span className="text-[10px] text-emerald-700 font-medium">Linked to firm inventory system</span>
-                      </div>
+                  {newItemCategory === 'CUSTOM' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Custom Category Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Landscape Architecture"
+                        value={newItemCustomCategory}
+                        onChange={e => setNewItemCustomCategory(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        SKU / Spec Code (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. PRC-GLAS-14"
+                        value={newItemSku}
+                        onChange={e => setNewItemSku(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono uppercase"
+                      />
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Initial Stock Count
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Base Unit Price ($ USD) *
                     </label>
                     <input
                       type="number"
-                      min={0}
-                      value={newItemInventoryCount}
-                      onChange={e => setNewItemInventoryCount(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Min Reorder Level
-                    </label>
-                    <input
-                      type="number"
+                      required
                       min={1}
-                      value={newItemMinStock}
-                      onChange={e => setNewItemMinStock(Number(e.target.value))}
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white"
+                      value={newItemPrice || ''}
+                      onChange={e => setNewItemPrice(Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Warehouse / Vault
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Pricing Unit
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Vault A-1"
-                      value={newItemWarehouseLocation}
-                      onChange={e => setNewItemWarehouseLocation(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none bg-white"
+                      placeholder="e.g. Per Inspection, Fixed Fee, Per Session"
+                      value={newItemUnit}
+                      onChange={e => setNewItemUnit(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Lead Time / Turnaround
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 3 Business Days, Immediate, 2 Weeks"
+                      value={newItemLeadTime}
+                      onChange={e => setNewItemLeadTime(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Search Tags (comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Glass, Lighting, Italy, Luxury"
+                      value={newItemTags}
+                      onChange={e => setNewItemTags(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* INVENTORY MANAGEMENT & EXISTING QR CODE SECTION */}
+                <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-[#8B7355]" />
+                      <span className="text-xs font-bold text-[#2C2416]">Inventory Management & QR Association</span>
+                    </div>
+                    <span className="text-[10px] bg-white text-[#8B7355] px-2 py-0.5 rounded-full font-mono border border-amber-200">
+                      Live Stock Sync
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-gray-700">
+                        Existing QR Code / Serial Key
+                      </label>
+                      <span className="text-[10px] text-gray-500">Scan or paste physical package QR</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="e.g. QR-PRC-SLAB-01 or paste existing supplier QR code..."
+                        value={newItemQrCode}
+                        onChange={e => handleQrCodeInputChange(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white focus:border-[#D4AF37]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sampleQr = catalogItems.find(i => i.qrCode)?.qrCode || 'QR-PRC-SLAB-01';
+                          handleQrCodeInputChange(sampleQr);
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#8B7355] hover:text-black font-semibold cursor-pointer underline"
+                      >
+                        Use Sample Existing QR
+                      </button>
+                    </div>
+
+                    {/* Recognition Alert for Existing QR Code */}
+                    {existingQrMatchedItem && (
+                      <div className="mt-2 p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex flex-col gap-1.5 animate-in fade-in duration-150">
+                        <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Existing QR Code Recognized in Inventory!</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-900 leading-tight">
+                          Matched: <strong>{existingQrMatchedItem.title}</strong> (SKU: {existingQrMatchedItem.sku}) • Current Stock: {existingQrMatchedItem.inventoryCount ?? 10} units at {existingQrMatchedItem.warehouseLocation || 'Studio Vault A-1'}.
+                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewItemTitle(existingQrMatchedItem.title);
+                              setNewItemPrice(existingQrMatchedItem.price);
+                              setNewItemCategory(existingQrMatchedItem.category);
+                              setNewItemSku(existingQrMatchedItem.sku);
+                              setNewItemUnit(existingQrMatchedItem.unit || 'Per Unit');
+                              setNewItemDescription(existingQrMatchedItem.description || '');
+                              setNewItemWarehouseLocation(existingQrMatchedItem.warehouseLocation || 'Studio Vault A-1');
+                              setNewItemInventoryCount(existingQrMatchedItem.inventoryCount ?? 10);
+                              setNewItemMinStock(existingQrMatchedItem.minStockLevel || 3);
+                              addToast('info', `Imported specs for ${existingQrMatchedItem.title} to manage inventory using this existing QR`);
+                            }}
+                            className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-[#8B7355] border border-amber-300 rounded-lg text-[10px] font-bold cursor-pointer"
+                          >
+                            Use for Inventory & Auto-Fill Specs
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateCatalogItemStock(existingQrMatchedItem.id, (existingQrMatchedItem.inventoryCount ?? 10) + 5);
+                              addToast('success', `Restocked +5 units to ${existingQrMatchedItem.title} using existing QR code`);
+                              setIsAddCatalogItemOpen(false);
+                            }}
+                            className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                          >
+                            Quick Restock +5 Units
+                          </button>
+                          <span className="text-[10px] text-emerald-700 font-medium">Linked to firm inventory system</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Initial Stock Count
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={newItemInventoryCount}
+                        onChange={e => setNewItemInventoryCount(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Min Reorder Level
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={newItemMinStock}
+                        onChange={e => setNewItemMinStock(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none font-mono bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                        Warehouse / Vault
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Vault A-1"
+                        value={newItemWarehouseLocation}
+                        onChange={e => setNewItemWarehouseLocation(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-xl outline-none bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Scope Specification & Deliverables
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe technical verification parameters, contractor obligations, or quarry certification deliverables..."
+                    value={newItemDescription}
+                    onChange={e => setNewItemDescription(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none resize-none leading-relaxed"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Scope Specification & Deliverables
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Describe technical verification parameters, contractor obligations, or quarry certification deliverables..."
-                  value={newItemDescription}
-                  onChange={e => setNewItemDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none resize-none leading-relaxed"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+              {/* Sticky Pinned Modal Action Footer */}
+              <div className="px-6 py-4 bg-slate-50/90 border-t border-slate-100 backdrop-blur-sm flex items-center justify-between shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddCatalogItemOpen(false)}
-                  className="px-4 py-2 text-xs text-gray-600 font-semibold hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-slate-600 font-semibold hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#2C2416] hover:bg-black text-[#D4AF37] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-black text-amber-400 font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-98"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Save to Catalog</span>
@@ -3232,178 +3304,184 @@ export const FinancialsView: React.FC = () => {
       {/* USE / ALLOCATE CATALOG SPECIFICATION MODAL */}
       {/* ========================================================================= */}
       {isUseItemModalOpen && selectedCatalogItemForUse && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-amber-100 animate-in zoom-in-95 my-8">
-            <div className="flex items-start justify-between pb-3 mb-4 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6 overscroll-contain">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200/90 flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Sticky Pinned Header */}
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm flex items-start justify-between shrink-0">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#8B7355] block">
                   Catalog Resource Allocation
                 </span>
-                <h3 className="text-lg font-serif font-bold text-gray-900 mt-0.5">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-gray-900 mt-0.5">
                   Use Architectural Specification
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsUseItemModalOpen(false)}
-                className="text-gray-400 hover:text-black p-1 text-lg font-bold cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            {/* Selected Item Summary Card */}
-            <div className="bg-amber-50/50 rounded-2xl p-3.5 border border-amber-200/80 mb-4">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-gray-700 border border-amber-200">
-                  {selectedCatalogItemForUse.sku}
-                </span>
-                <span className="text-[10px] font-bold text-[#8B7355] uppercase">
-                  {selectedCatalogItemForUse.category}
-                </span>
-              </div>
-              <h4 className="font-bold text-sm text-gray-900">
-                {selectedCatalogItemForUse.title}
-              </h4>
-              <div className="flex items-center justify-between text-xs text-gray-600 mt-2 pt-2 border-t border-amber-200/50">
-                <span>Base Unit Price: <strong className="font-mono font-bold text-[#2C2416]">${selectedCatalogItemForUse.price.toLocaleString()}</strong> ({selectedCatalogItemForUse.unit || 'Standard'})</span>
-                {selectedCatalogItemForUse.leadTime && (
-                  <span className="text-[10px] text-gray-500 font-mono">Lead time: {selectedCatalogItemForUse.leadTime}</span>
+            {/* Scrollable Modal Form Body */}
+            <form onSubmit={handleUseCatalogItemConfirm} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 overflow-y-auto flex-1 space-y-4 overscroll-contain focus:outline-none custom-scrollbar">
+                {/* Selected Item Summary Card */}
+                <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-200/80">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-gray-700 border border-amber-200">
+                      {selectedCatalogItemForUse.sku}
+                    </span>
+                    <span className="text-[10px] font-bold text-[#8B7355] uppercase">
+                      {selectedCatalogItemForUse.category}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-sm text-gray-900">
+                    {selectedCatalogItemForUse.title}
+                  </h4>
+                  <div className="flex items-center justify-between text-xs text-gray-600 mt-2 pt-2 border-t border-amber-200/50">
+                    <span>Base Unit Price: <strong className="font-mono font-bold text-[#2C2416]">${selectedCatalogItemForUse.price.toLocaleString()}</strong> ({selectedCatalogItemForUse.unit || 'Standard'})</span>
+                    {selectedCatalogItemForUse.leadTime && (
+                      <span className="text-[10px] text-gray-500 font-mono">Lead time: {selectedCatalogItemForUse.leadTime}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Destination Radio Cards */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Select Allocation Destination *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUseDestination('POS')}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                        useDestination === 'POS'
+                          ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4 text-[#8B7355]" />
+                      <span className="text-xs">Active POS Cart</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setUseDestination('BUDGET')}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                        useDestination === 'BUDGET'
+                          ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <DollarSign className="w-4 h-4 text-[#8B7355]" />
+                      <span className="text-xs">Project Budget</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setUseDestination('INVOICE')}
+                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                        useDestination === 'INVOICE'
+                          ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4 text-[#8B7355]" />
+                      <span className="text-xs">Draft Invoice</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Target Project Selection (for Budget and Invoice) */}
+                {(useDestination === 'BUDGET' || useDestination === 'INVOICE' || useDestination === 'POS') && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Target Project *
+                    </label>
+                    <select
+                      value={useTargetProjectId}
+                      onChange={e => setUseTargetProjectId(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
+                    >
+                      {clientProjects.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.code}) — {p.clientName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
-              </div>
-            </div>
 
-            <form onSubmit={handleUseCatalogItemConfirm} className="space-y-3.5">
-              {/* Destination Radio Cards */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Select Allocation Destination *
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUseDestination('POS')}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
-                      useDestination === 'POS'
-                        ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4 text-[#8B7355]" />
-                    <span className="text-xs">Active POS Cart</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setUseDestination('BUDGET')}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
-                      useDestination === 'BUDGET'
-                        ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
-                  >
-                    <DollarSign className="w-4 h-4 text-[#8B7355]" />
-                    <span className="text-xs">Project Budget</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setUseDestination('INVOICE')}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
-                      useDestination === 'INVOICE'
-                        ? 'border-[#D4AF37] bg-amber-50/60 text-[#2C2416] font-bold shadow-2xs'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4 text-[#8B7355]" />
-                    <span className="text-xs">Draft Invoice</span>
-                  </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Quantity / Units
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={useQuantity}
+                      onChange={e => setUseQuantity(Math.max(1, Number(e.target.value)))}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Custom Unit Price ($ USD)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder={selectedCatalogItemForUse.price.toString()}
+                      value={useCustomPrice}
+                      onChange={e => setUseCustomPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Target Project Selection (for Budget and Invoice) */}
-              {(useDestination === 'BUDGET' || useDestination === 'INVOICE' || useDestination === 'POS') && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Target Project *
+                    Allocation Notes & Engineering Specifications
                   </label>
-                  <select
-                    value={useTargetProjectId}
-                    onChange={e => setUseTargetProjectId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none bg-white font-medium"
-                  >
-                    {clientProjects.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.code}) — {p.clientName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Quantity / Units
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={useQuantity}
-                    onChange={e => setUseQuantity(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
+                  <textarea
+                    rows={2}
+                    placeholder="Additional scope instructions, contractor contact, or milestone release trigger..."
+                    value={useNotes}
+                    onChange={e => setUseNotes(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none resize-none leading-relaxed"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Custom Unit Price ($ USD)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder={selectedCatalogItemForUse.price.toString()}
-                    value={useCustomPrice}
-                    onChange={e => setUseCustomPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none font-mono"
-                  />
+
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Calculated Allocation Total:</span>
+                  <span className="font-mono font-bold text-sm text-[#2C2416]">
+                    $
+                    {(
+                      (typeof useCustomPrice === 'number' && useCustomPrice > 0
+                        ? useCustomPrice
+                        : selectedCatalogItemForUse.price) * useQuantity
+                    ).toLocaleString()}
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Allocation Notes & Engineering Specifications
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Additional scope instructions, contractor contact, or milestone release trigger..."
-                  value={useNotes}
-                  onChange={e => setUseNotes(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl outline-none resize-none leading-relaxed"
-                />
-              </div>
-
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80 flex items-center justify-between text-xs">
-                <span className="text-gray-500 font-medium">Calculated Allocation Total:</span>
-                <span className="font-mono font-bold text-sm text-[#2C2416]">
-                  $
-                  {(
-                    (typeof useCustomPrice === 'number' && useCustomPrice > 0
-                      ? useCustomPrice
-                      : selectedCatalogItemForUse.price) * useQuantity
-                  ).toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              {/* Sticky Pinned Modal Action Footer */}
+              <div className="px-6 py-4 bg-slate-50/90 border-t border-slate-100 backdrop-blur-sm flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsUseItemModalOpen(false)}
-                  className="px-4 py-2 text-xs text-gray-600 font-semibold hover:bg-gray-100 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-slate-600 font-semibold hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#2C2416] hover:bg-black text-[#D4AF37] font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-black text-amber-400 font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-98"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>
