@@ -25,7 +25,8 @@ import {
   Receipt,
   FileCheck2,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 import {
   generateInvoiceHtml,
@@ -58,6 +59,7 @@ export const DocumentTemplateModal: React.FC<DocumentTemplateModalProps> = ({ is
     invoices,
     posTransactions,
     legalDocuments,
+    currentUser,
     addToast
   } = useApp();
 
@@ -70,6 +72,31 @@ export const DocumentTemplateModal: React.FC<DocumentTemplateModalProps> = ({ is
   const watermarkFileInputId = useId();
 
   if (!isOpen) return null;
+
+  if (currentUser.role === 'CLIENT' || currentUser.role === 'SITE_ENGINEER') {
+    return (
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-red-200 animate-in zoom-in-95">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-7 h-7" />
+          </div>
+          <span className="text-[10px] font-mono uppercase font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+            IAM Role Policy Isolation
+          </span>
+          <h3 className="text-xl font-serif font-bold text-[#2C2416]">Template Studio Restricted</h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Document statements, watermark controls, and company branding templates are strictly restricted to Company Administrators and Financial Controllers. Client and field trade accounts are not authorized to alter official templates.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-[#2C2416] text-[#D4AF37] font-bold text-xs rounded-xl hover:bg-black cursor-pointer shadow-md transition-all"
+          >
+            Close &amp; Return
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // The template currently selected for editing
   const editingTemplate: DocumentTemplate =

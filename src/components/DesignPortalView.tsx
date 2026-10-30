@@ -99,11 +99,16 @@ export const DesignPortalView: React.FC = () => {
     setIsCreateProjectOpen,
     setEditingProjectData,
     clients,
-    addToast
+    addToast,
+    hasPermission
   } = useApp();
 
   const isClient = currentUser.role === 'CLIENT';
-  const isStaff = currentUser.role === 'DESIGNER' || currentUser.role === 'ADMIN' || currentUser.role === 'PROJECT_MANAGER';
+  const isStaff =
+    currentUser.role === 'ADMIN' ||
+    hasPermission('MANAGE_DESIGN_STUDIO') ||
+    hasPermission('DESIGN_PORTAL_WRITE') ||
+    hasPermission('GENERATE_AI_CONCEPTS');
 
   type TabType = 'request' | 'gallery' | 'tools' | 'contact' | 'inquiries' | 'articles';
   const [activeTab, setActiveTab] = useState<TabType>('request');

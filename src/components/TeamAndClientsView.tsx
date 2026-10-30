@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { TeamMember, Client } from '../types';
 import { CompanyManagementView } from './CompanyManagementView';
@@ -37,13 +37,25 @@ export const TeamAndClientsView: React.FC = () => {
     isCreateClientOpen,
     setIsCreateClientOpen,
     currentUser,
-    addToast
+    addToast,
+    hasPermission
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'team' | 'clients' | 'companies' | 'iam' | 'onboarding'>('team');
   const [searchTerm, setSearchTerm] = useState('');
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [onboardingType, setOnboardingType] = useState<'CLIENT' | 'STAFF'>('STAFF');
+
+  // Dynamic tab access enforcement based on live IAM governance
+  useEffect(() => {
+    if (activeTab === 'iam' && !(hasPermission('MANAGE_IAM_STAFF') || hasPermission('MANAGE_IAM_USERS') || hasPermission('SYSTEM_ADMIN_CONFIG') || currentUser.role === 'ADMIN')) {
+      setActiveTab('team');
+    } else if (activeTab === 'onboarding' && !(hasPermission('ONBOARD_CLIENT_ACCOUNTS') || hasPermission('MANAGE_IAM_STAFF') || currentUser.role === 'ADMIN')) {
+      setActiveTab('team');
+    } else if (activeTab === 'companies' && !(hasPermission('MANAGE_COMPANIES') || hasPermission('AUDIT_NDA_DOCUMENTS') || hasPermission('MANAGE_TEAM_CLIENTS') || currentUser.role === 'ADMIN')) {
+      setActiveTab('team');
+    }
+  }, [activeTab, hasPermission, currentUser.role]);
 
   const pendingClientsCount = users.filter(
     u => (u.role === 'CLIENT' || u.onboardingStatus !== undefined) && u.onboardingStatus === 'PENDING_ONBOARDING'
@@ -127,8 +139,8 @@ export const TeamAndClientsView: React.FC = () => {
           </p>
         </div>
 
-        {currentUser.role !== 'CLIENT' && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {(hasPermission('ONBOARD_CLIENT_ACCOUNTS') || currentUser.role === 'ADMIN') && (
             <button
               onClick={() => {
                 setOnboardingType('CLIENT');
@@ -139,6 +151,8 @@ export const TeamAndClientsView: React.FC = () => {
               <Building className="w-3.5 h-3.5" />
               <span>Add Client via OTP</span>
             </button>
+          )}
+          {(hasPermission('MANAGE_IAM_STAFF') || currentUser.role === 'ADMIN') && (
             <button
               onClick={() => {
                 setOnboardingType('STAFF');
@@ -149,8 +163,8 @@ export const TeamAndClientsView: React.FC = () => {
               <UserPlus className="w-3.5 h-3.5 text-amber-400" />
               <span>Onboard Staff via Email OTP</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Primary Navigation Tabs */}
@@ -192,37 +206,37 @@ export const TeamAndClientsView: React.FC = () => {
             <span>Companies & Partners ({companies.length})</span>
           </button>
 
-          {(currentUser.role === 'ADMIN' || currentUser.role === 'PROJECT_MANAGER') && (
-            <>
-              <button
-                onClick={() => setActiveTab('onboarding')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  activeTab === 'onboarding'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span>Onboarding Tracker</span>
-                {pendingClientsCount > 0 && (
-                  <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold animate-pulse">
-                    {pendingClientsCount}
-                  </span>
-                )}
-              </button>
+          {(hasPermission('ONBOARD_CLIENT_ACCOUNTS') || hasPermission('MANAGE_IAM_STAFF') || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={() => setActiveTab('onboarding')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'onboarding'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>Onboarding Tracker</span>
+              {pendingClientsCount > 0 && (
+                <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-white rounded-full font-bold animate-pulse">
+                  {pendingClientsCount}
+                </span>
+              )}
+            </button>
+          )}
 
-              <button
-                onClick={() => setActiveTab('iam')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  activeTab === 'iam'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>IAM & 2FA Governance ({users.length})</span>
-              </button>
-            </>
+          {(hasPermission('MANAGE_IAM_STAFF') || hasPermission('MANAGE_IAM_USERS') || hasPermission('SYSTEM_ADMIN_CONFIG') || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={() => setActiveTab('iam')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'iam'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>IAM & 2FA Governance ({users.length})</span>
+            </button>
           )}
         </div>
 

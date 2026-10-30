@@ -40,10 +40,13 @@ export const StatsOverview: React.FC = () => {
     setActiveView,
     addToast,
     currentUser,
-    setChatOpen
+    setChatOpen,
+    canAccessView,
+    getUserPermissions
   } = useApp();
 
-  const rolePermissions = getRolePermissions(currentUser.role);
+  const userPermissions = getUserPermissions(currentUser);
+  const rolePermissions = getRolePermissions(currentUser.role, userPermissions);
   const isClient = currentUser.role === 'CLIENT';
   const isAdmin = currentUser.role === 'ADMIN';
 
@@ -137,7 +140,7 @@ export const StatsOverview: React.FC = () => {
         {/* Left 2 Cols: Financial / Role Banner & Milestone Spotlight & Recent */}
         <div className="lg:col-span-2 space-y-6">
           {/* Capital Status Banner (Visible to Admin, PM, Finance, and Client for their own project) */}
-          {(hasViewAccess(currentUser.role, 'financials') || isClient) && (
+          {(canAccessView('financials') || isClient) && (
             <div className="bg-gradient-to-r from-[#2C2416] to-[#423623] text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
               <div className="absolute right-0 top-0 w-64 h-64 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none" />
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -152,7 +155,7 @@ export const StatsOverview: React.FC = () => {
                     </span>
                   </h3>
                 </div>
-                {hasViewAccess(currentUser.role, 'financials') && (
+                {canAccessView('financials') && (
                   <button
                     onClick={() => setActiveView('financials')}
                     className="text-xs bg-white/10 hover:bg-white/20 text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -421,8 +424,8 @@ export const StatsOverview: React.FC = () => {
               </button>
             )}
 
-            {/* Design Portal Action (for Admin, PM, Designer, Site Engineer, Client) */}
-            {hasViewAccess(currentUser.role, 'design-portal') && (
+            {/* Design Portal Action */}
+            {canAccessView('design-portal') && (
               <button
                 onClick={() => setActiveView('design-portal')}
                 className="w-full text-left p-3 rounded-xl bg-gray-50 hover:bg-amber-50/50 border border-gray-200/70 hover:border-amber-200 transition-all flex items-center justify-between cursor-pointer group"
@@ -445,7 +448,7 @@ export const StatsOverview: React.FC = () => {
             )}
 
             {/* Financials / Invoices Action */}
-            {hasViewAccess(currentUser.role, 'financials') && (
+            {canAccessView('financials') && (
               <button
                 onClick={() => setActiveView('financials')}
                 className="w-full text-left p-3 rounded-xl bg-gray-50 hover:bg-amber-50/50 border border-gray-200/70 hover:border-amber-200 transition-all flex items-center justify-between cursor-pointer group"
@@ -467,8 +470,8 @@ export const StatsOverview: React.FC = () => {
               </button>
             )}
 
-            {/* Team Directory (Admin & PM only) */}
-            {hasViewAccess(currentUser.role, 'team-clients') && (
+            {/* Team Directory & Governance */}
+            {canAccessView('team-clients') && (
               <button
                 onClick={() => setActiveView('team-clients')}
                 className="w-full text-left p-3 rounded-xl bg-gray-50 hover:bg-amber-50/50 border border-gray-200/70 hover:border-amber-200 transition-all flex items-center justify-between cursor-pointer group"

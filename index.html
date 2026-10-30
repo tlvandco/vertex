@@ -2,6 +2,71 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var rawFetch = window.fetch;
+          var activeFetch = rawFetch ? function() { return rawFetch.apply(window, arguments); } : null;
+          try {
+            Object.defineProperty(window, 'fetch', {
+              get: function() {
+                return activeFetch;
+              },
+              set: function(newFetch) {
+                activeFetch = newFetch;
+              },
+              configurable: true,
+              enumerable: true
+            });
+          } catch (err1) {
+            try {
+              var proto = Object.getPrototypeOf(window);
+              if (proto) {
+                Object.defineProperty(proto, 'fetch', {
+                  get: function() {
+                    return activeFetch;
+                  },
+                  set: function(newFetch) {
+                    activeFetch = newFetch;
+                  },
+                  configurable: true,
+                  enumerable: true
+                });
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        // Global safeguard against browser extension / interceptor errors
+        window.addEventListener('error', function(event) {
+          if (
+            event &&
+            ((event.filename && (
+              event.filename.indexOf('chrome-extension://') !== -1 ||
+              event.filename.indexOf('moz-extension://') !== -1 ||
+              event.filename.indexOf('safari-extension://') !== -1
+            )) ||
+            (event.message && event.message.indexOf('Cannot set property fetch of #<Window>') !== -1))
+          ) {
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            if (event.preventDefault) event.preventDefault();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (
+            event &&
+            event.reason &&
+            event.reason.message &&
+            event.reason.message.indexOf('Cannot set property fetch of #<Window>') !== -1
+          ) {
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            if (event.preventDefault) event.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><polygon points='12 2 2 22 22 22'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VERTEX - Enterprise Project Management Platform</title>

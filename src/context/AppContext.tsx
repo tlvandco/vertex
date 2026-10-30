@@ -38,6 +38,7 @@ import {
   CatalogItem,
   DocumentTemplate
 } from '../types';
+import { AppViewId, hasViewAccess, getRolePermissions } from '../utils/rbac';
 import { DEFAULT_TEMPLATES } from '../data/defaultTemplates';
 import {
   SEED_USERS,
@@ -136,7 +137,9 @@ interface AppContextType {
   activeSessions: UserSession[];
   revokeUserSession: (sessionId: string) => void;
   global2FAEnforced: boolean;
-  hasPermission: (permission: IAMPermission) => boolean;
+  hasPermission: (permission: IAMPermission, user?: User) => boolean;
+  canAccessView: (view: AppViewId, user?: User) => boolean;
+  getUserPermissions: (user?: User) => IAMPermission[];
   rolePolicies: Record<UserRole, IAMPermission[]>;
   updateRolePolicy: (role: UserRole, permissions: IAMPermission[]) => void;
   isProjectMember: (projectId: string, user?: User) => boolean;
@@ -813,6 +816,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const matched = users.find(u => u.role === role) || users[0];
     const isStaffRole = ['ADMIN', 'PROJECT_MANAGER', 'DESIGNER', 'SITE_ENGINEER', 'FINANCE'].includes(role);
 
+    const effectivePermissions =
+      matched.permissions && Array.isArray(matched.permissions) && matched.permissions.length > 0
+        ? matched.permissions
+        : (rolePolicies[role] || DEFAULT_ROLE_POLICIES[role] || []);
+
+    const effectiveMatched: User = {
+      ...matched,
+      permissions: effectivePermissions
+    };
+
     // Enforce Two-Factor Authentication for all staff logins and role changes
     if (isStaffRole && matched.id !== currentUser.id) {
       setCurrent2FAChallenge({
@@ -829,7 +842,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         onSuccess: (_code: string) => {
           setIs2FAChallengeOpen(false);
           setCurrent2FAChallenge(null);
-          setCurrentUser(matched);
+          setCurrentUser(effectiveMatched);
           addToast('success', `2FA verified successfully. Logged in as ${matched.name} (${role})`);
           logAuditAction('STAFF_2FA_LOGIN_SUCCESS', 'AUTH_SESSION', 'SUCCESS', `Staff 2FA challenge passed for ${matched.email} (${role})`);
         }
@@ -838,7 +851,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    setCurrentUser(matched);
+    setCurrentUser(effectiveMatched);
     addToast('info', `Active profile set to ${matched.name} (${role})`);
     logAuditAction('SWITCH_ROLE', 'AUTH_SESSION', 'SUCCESS', `Switched role context to ${role} (${matched.email})`);
   };
@@ -961,6 +974,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // Zero-Trust IAM Enforcement: Clients cannot modify tasks that are not assigned to them
+    if (currentUser.role === 'CLIENT' && task.assignedToId !== currentUser.id) {
+      addToast('error', 'Security Policy: Clients cannot modify tasks that are not assigned to them.');
+      logAuditAction(
+        'UNAUTHORIZED_TASK_MODIFICATION_BLOCKED',
+        'SECURITY_POLICY',
+        'FAILURE',
+        `Client ${currentUser.email} attempted to modify unassigned task ${id} (${task.title})`
+      );
+      return;
+    }
+
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     logAuditAction('UPDATE_TASK', 'PROJECT_MANAGEMENT', 'SUCCESS', `Updated task ${id}`);
   };
@@ -1986,14 +2014,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAuditAction('UPDATE_IAM_PERMISSIONS', 'IDENTITY_ACCESS_MANAGEMENT', 'SUCCESS', `Updated policy grants for user ${userId}`);
   };
 
-  const hasPermission = (permission: IAMPermission): boolean => {
-    if (currentUser.role === 'ADMIN') return true;
-    if (currentUser.permissions && currentUser.permissions.length > 0) {
-      if (currentUser.permissions.includes('ADMIN_FULL_ACCESS')) return true;
-      return currentUser.permissions.includes(permission);
+  const getUserPermissions = (user: User = currentUser): IAMPermission[] => {
+    if (user.permissions && Array.isArray(user.permissions)) {
+      return user.permissions;
     }
-    const policy = rolePolicies[currentUser.role] || DEFAULT_ROLE_POLICIES[currentUser.role] || [];
-    return policy.includes(permission);
+    return rolePolicies[user.role] || DEFAULT_ROLE_POLICIES[user.role] || [];
+  };
+
+  const hasPermission = (permission: IAMPermission, user: User = currentUser): boolean => {
+    if (user.role === 'ADMIN') return true;
+    const perms = getUserPermissions(user);
+    if (perms.includes('ADMIN_FULL_ACCESS')) return true;
+    return perms.includes(permission);
+  };
+
+  const canAccessView = (view: AppViewId, user: User = currentUser): boolean => {
+    const perms = getUserPermissions(user);
+    return hasViewAccess(user.role, view, perms);
   };
 
   const updateRolePolicy = (role: UserRole, newPerms: IAMPermission[]) => {
@@ -2479,6 +2516,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateUserRole,
         updateUserPermissions,
         hasPermission,
+        canAccessView,
+        getUserPermissions,
         rolePolicies,
         updateRolePolicy,
         isProjectMember,

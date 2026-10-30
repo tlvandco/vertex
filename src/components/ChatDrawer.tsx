@@ -312,22 +312,43 @@ export const ChatDrawer: React.FC = () => {
           }`}
         >
           <div className="p-4 border-b border-gray-200 bg-white">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5">
-                <span className="font-serif font-bold text-gray-900 text-sm">VERTEX Direct</span>
-                <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1 py-0.5 rounded font-mono font-bold flex items-center gap-0.5">
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-serif font-bold text-gray-900 text-sm truncate">VERTEX Direct</span>
+                <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1 py-0.5 rounded font-mono font-bold flex items-center gap-0.5 shrink-0">
                   <Lock className="w-2.5 h-2.5" />
                   Private
                 </span>
               </div>
-              <button
-                onClick={handleOpenCreateModal}
-                className="flex items-center gap-1 text-[11px] font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-black px-2.5 py-1 rounded-lg shadow-xs transition-colors cursor-pointer"
-                title="Create New Chat Channel"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>New Chat</span>
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="flex items-center gap-1 text-[11px] font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-black px-2.5 py-1 rounded-lg shadow-xs transition-colors cursor-pointer"
+                  title="Create New Chat Channel"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Chat</span>
+                </button>
+                {/* Mobile Window Controls */}
+                <div className="flex sm:hidden items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsMaximized(!isMaximized)}
+                    className="p-1 rounded-lg border border-gray-200 bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
+                    title={isMaximized ? "Restore Window Size" : "Maximize Chat Window"}
+                  >
+                    {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChatOpen(false)}
+                    className="p-1 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-500 hover:text-black cursor-pointer"
+                    title="Close chat"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -487,10 +508,10 @@ export const ChatDrawer: React.FC = () => {
         {/* Right Active Message Stream */}
         <div className="flex-1 flex flex-col h-2/3 sm:h-full bg-white">
           {/* Channel Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-xs">
+          <div className="p-3.5 sm:p-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-xs gap-3">
             {currentChannel ? (
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#2C2416] text-[#D4AF37] flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-full bg-[#2C2416] text-[#D4AF37] flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-amber-300/60">
                   {currentChannel.type === 'DIRECT' || currentChannel.category === 'DIRECT_MESSAGE' || currentChannel.category === 'CLIENT_SUPPORT' ? (
                     counterpartUser?.avatar ? (
                       <img
@@ -505,19 +526,19 @@ export const ChatDrawer: React.FC = () => {
                     '#'
                   )}
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="font-serif font-bold text-gray-900 text-sm">{currentDisplayName}</h4>
+                    <h4 className="font-serif font-bold text-gray-900 text-sm truncate">{currentDisplayName}</h4>
                     {currentChannel.category && (
-                      <span className="text-[9px] bg-amber-50 text-[#8B7355] border border-amber-200/80 px-1.5 py-0.5 rounded font-bold uppercase">
+                      <span className="text-[9px] bg-amber-50 text-[#8B7355] border border-amber-200/80 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
                         {currentChannel.category.replace('_', ' ')}
                       </span>
                     )}
-                    <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5">
+                    <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5 shrink-0">
                       <Lock className="w-2.5 h-2.5 text-amber-600" />
                       {currentChannel.type === 'DIRECT' || currentChannel.category === 'DIRECT_MESSAGE' || currentChannel.category === 'CLIENT_SUPPORT'
                         ? '1-on-1 Private'
-                        : `${currentChannel.members?.length || 0} Authorized Members`}
+                        : `${currentChannel.members?.length || 0} Members`}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-400 truncate max-w-sm mt-0.5">
@@ -526,23 +547,43 @@ export const ChatDrawer: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <h4 className="font-serif font-bold text-gray-900 text-sm">Select or Create a Chat</h4>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-serif font-bold text-gray-900 text-sm">Select or Create a Chat</h4>
+                <p className="text-[11px] text-gray-400">Choose a channel from the directory to start messaging.</p>
+              </div>
             )}
 
-            <div className="flex items-center gap-1">
+            {/* Window Controls: Prominent Maximize/Restore & Close */}
+            <div className="flex items-center gap-1.5 shrink-0 z-10">
               <button
                 type="button"
                 onClick={() => setIsMaximized(!isMaximized)}
-                className="p-1.5 text-gray-500 hover:text-black rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl border flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+                  isMaximized
+                    ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 hover:text-black border-gray-300'
+                }`}
                 title={isMaximized ? "Restore Chat Window Size (Ctrl+M)" : "Maximize Chat Window (Ctrl+M)"}
+                aria-label={isMaximized ? "Restore Chat Window" : "Maximize Chat Window"}
               >
-                {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                {isMaximized ? (
+                  <>
+                    <Minimize2 className="w-4 h-4 text-amber-800 shrink-0" />
+                    <span className="font-bold">Restore</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-4 h-4 text-gray-800 shrink-0" />
+                    <span className="font-bold">Maximize</span>
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setChatOpen(false)}
-                className="p-1.5 text-gray-400 hover:text-black rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-1.5 text-gray-500 hover:text-black rounded-xl hover:bg-gray-100 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
                 title="Close chat (Esc)"
+                aria-label="Close chat"
               >
                 <X className="w-5 h-5" />
               </button>

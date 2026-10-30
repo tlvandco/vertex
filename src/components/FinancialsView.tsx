@@ -103,7 +103,32 @@ export const FinancialsView: React.FC = () => {
   // 2. Project Managers can ONLY access projects they are allocated to, and CANNOT settle payments!
   const isClient = currentUser.role === 'CLIENT';
   const isProjectManager = currentUser.role === 'PROJECT_MANAGER';
-  const canSettlePayments = currentUser.role === 'ADMIN' || currentUser.role === 'FINANCE' || isClient;
+  const canManageTemplates =
+    currentUser.role !== 'CLIENT' &&
+    currentUser.role !== 'SITE_ENGINEER' &&
+    (currentUser.role === 'ADMIN' ||
+      currentUser.role === 'PROJECT_MANAGER' ||
+      currentUser.role === 'FINANCE' ||
+      hasPermission('MANAGE_FINANCIALS') ||
+      hasPermission('ISSUE_INVOICES'));
+
+  const canSettlePayments =
+    currentUser.role === 'ADMIN' ||
+    hasPermission('MANAGE_FINANCIALS') ||
+    hasPermission('APPROVE_BUDGET_DRAWS') ||
+    hasPermission('PROCESS_POS') ||
+    isClient;
+
+  // Dynamically enforce tab access when role policies change
+  useEffect(() => {
+    if (activeTab === 'pos' && !(hasPermission('ACCESS_POS_TERMINAL') || hasPermission('PROCESS_POS'))) {
+      setActiveTab('invoices');
+    } else if (activeTab === 'expenses' && !(hasPermission('MANAGE_FINANCIALS') || hasPermission('APPROVE_BUDGET_DRAWS'))) {
+      setActiveTab('invoices');
+    } else if (activeTab === 'legal' && !(hasPermission('EXECUTE_LEGAL_CONTRACTS') || hasPermission('AUDIT_NDA_DOCUMENTS') || isClient)) {
+      setActiveTab('invoices');
+    }
+  }, [activeTab, hasPermission, isClient]);
 
   // Accessible projects for billing & POS strictly isolated by role
   const clientProjects = isClient
@@ -743,8 +768,8 @@ export const FinancialsView: React.FC = () => {
     const inv = invoices.find(i => i.id === payInvoiceId);
     if (!inv) return;
 
-    if (!canSettlePayments || isProjectManager) {
-      addToast('error', 'IAM Restriction: Project Managers cannot settle payments. You may only request Change Orders or Purchase Orders for Finance clearance.');
+    if (!canSettlePayments) {
+      addToast('error', 'IAM Restriction: You do not have authorization to settle payments or clear financial transactions.');
       return;
     }
 
@@ -783,46 +808,52 @@ export const FinancialsView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Active Template & Watermark Studio Launcher */}
-          <button
-            type="button"
-            onClick={() => setIsTemplateManagerOpen(true)}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-300/80 bg-amber-50 hover:bg-amber-100/80 text-amber-950 transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
-            title="Configure company branding, custom watermarks, logos, and statement templates"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-amber-700 shrink-0" />
-            <div className="text-left">
-              <span className="text-[9px] uppercase font-bold text-amber-700 block leading-tight">Template &amp; Watermark</span>
-              <span className="text-xs font-bold truncate max-w-[160px] block leading-tight">
-                {activeDocumentTemplate.companyName} {activeDocumentTemplate.showWatermark ? '• Watermark On' : '• Clean'}
-              </span>
-            </div>
-          </button>
+          {/* Active Template & Watermark Studio Launcher (Company Admins & Financial Managers Only - Never Clients) */}
+          {canManageTemplates && (
+            <button
+              type="button"
+              onClick={() => setIsTemplateManagerOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-300/80 bg-amber-50 hover:bg-amber-100/80 text-amber-950 transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+              title="Configure company branding, custom watermarks, logos, and statement templates"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-amber-700 shrink-0" />
+              <div className="text-left">
+                <span className="text-[9px] uppercase font-bold text-amber-700 block leading-tight">Template &amp; Watermark</span>
+                <span className="text-xs font-bold truncate max-w-[160px] block leading-tight">
+                  {activeDocumentTemplate.companyName} {activeDocumentTemplate.showWatermark ? '• Watermark On' : '• Clean'}
+                </span>
+              </div>
+            </button>
+          )}
 
-          {currentUser.role !== 'CLIENT' && (
-            <>
-              <button
-                onClick={() => setActiveTab('pos')}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>Open POS Register</span>
-              </button>
-              <button
-                onClick={() => setIsUploadDocOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <FileUp className="w-3.5 h-3.5" />
-                <span>Upload Paperwork</span>
-              </button>
-              <button
-                onClick={() => setIsCreateInvoiceOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Generate Invoice</span>
-              </button>
-            </>
+          {(hasPermission('ACCESS_POS_TERMINAL') || hasPermission('PROCESS_POS')) && (
+            <button
+              onClick={() => setActiveTab('pos')}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Open POS Register</span>
+            </button>
+          )}
+
+          {(hasPermission('EXECUTE_LEGAL_CONTRACTS') || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={() => setIsUploadDocOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileUp className="w-3.5 h-3.5" />
+              <span>Upload Paperwork</span>
+            </button>
+          )}
+
+          {(hasPermission('ISSUE_INVOICES') || hasPermission('MANAGE_FINANCIALS')) && (
+            <button
+              onClick={() => setIsCreateInvoiceOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#B8860B] text-white shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Generate Invoice</span>
+            </button>
           )}
         </div>
       </div>
@@ -898,43 +929,49 @@ export const FinancialsView: React.FC = () => {
           <span>{isClient ? 'My Invoices & Retainers' : 'Invoices & Draws'} ({visibleInvoices.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('pos')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'pos'
-              ? 'bg-slate-900 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          <span>POS Terminal & Register ({visiblePOSTransactions.length})</span>
-        </button>
+        {(hasPermission('ACCESS_POS_TERMINAL') || hasPermission('PROCESS_POS')) && (
+          <button
+            onClick={() => setActiveTab('pos')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'pos'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>POS Terminal & Register ({visiblePOSTransactions.length})</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('legal')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'legal'
-              ? 'bg-slate-900 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <FileCheck2 className="w-3.5 h-3.5" />
-          <span>Legal Paperwork & E-Sign ({visibleLegalDocs.length})</span>
-        </button>
+        {(hasPermission('EXECUTE_LEGAL_CONTRACTS') || hasPermission('AUDIT_NDA_DOCUMENTS') || isClient) && (
+          <button
+            onClick={() => setActiveTab('legal')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'legal'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <FileCheck2 className="w-3.5 h-3.5" />
+            <span>Legal Paperwork & E-Sign ({visibleLegalDocs.length})</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('payments')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'payments'
-              ? 'bg-slate-900 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>Transactions & Settlements ({visiblePayments.length})</span>
-        </button>
+        {(hasPermission('VIEW_FINANCIALS') || hasPermission('PROCESS_POS') || isClient) && (
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'payments'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Transactions & Settlements ({visiblePayments.length})</span>
+          </button>
+        )}
 
-        {!isClient && (
+        {(hasPermission('MANAGE_FINANCIALS') || hasPermission('APPROVE_BUDGET_DRAWS')) && !isClient && (
           <button
             onClick={() => setActiveTab('expenses')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
@@ -3542,11 +3579,13 @@ export const FinancialsView: React.FC = () => {
         initialItemToGenerate={barcodeItemToGenerate}
       />
 
-      {/* Open-Source Document & Statements Template Studio Modal */}
-      <DocumentTemplateModal
-        isOpen={isTemplateManagerOpen}
-        onClose={() => setIsTemplateManagerOpen(false)}
-      />
+      {/* Open-Source Document & Statements Template Studio Modal (Authorized Staff Only) */}
+      {canManageTemplates && (
+        <DocumentTemplateModal
+          isOpen={isTemplateManagerOpen}
+          onClose={() => setIsTemplateManagerOpen(false)}
+        />
+      )}
     </div>
   );
 };

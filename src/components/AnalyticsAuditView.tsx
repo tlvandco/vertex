@@ -42,7 +42,7 @@ import { LiveLogConsole } from './analytics/LiveLogConsole';
 import { SRETelemetryMetrics } from './analytics/SRETelemetryMetrics';
 
 export const AnalyticsAuditView: React.FC = () => {
-  const { auditLogs, systemLogs, addToast, logAuditAction, clearAuditLogs } = useApp();
+  const { auditLogs, systemLogs, addToast, logAuditAction, clearAuditLogs, hasPermission, currentUser } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -147,17 +147,19 @@ export const AnalyticsAuditView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to clear forensic audit logs? This action is tracked.')) {
-                clearAuditLogs();
-              }
-            }}
-            className="px-3 py-2 rounded-xl text-xs font-bold border border-red-200 hover:bg-red-50 text-red-700 transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Flush and reset audit log ledger"
-          >
-            <span>Reset Logs</span>
-          </button>
+          {(hasPermission('SYSTEM_ADMIN_CONFIG') || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to clear forensic audit logs? This action is tracked.')) {
+                  clearAuditLogs();
+                }
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-bold border border-red-200 hover:bg-red-50 text-red-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Flush and reset audit log ledger"
+            >
+              <span>Reset Logs</span>
+            </button>
+          )}
           <button
             onClick={simulateSystemAudit}
             className="px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-300 hover:bg-gray-50 text-gray-700 transition-all flex items-center gap-1.5 cursor-pointer"
@@ -165,13 +167,15 @@ export const AnalyticsAuditView: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
             <span>Run Health Check</span>
           </button>
-          <button
-            onClick={exportCSV}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
+          {(hasPermission('EXPORT_AUDIT_LOGS') || hasPermission('EXPORT_FORENSIC_LOGS') || currentUser.role === 'ADMIN') && (
+            <button
+              onClick={exportCSV}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2C2416] hover:bg-black text-[#D4AF37] shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
+            </button>
+          )}
         </div>
       </div>
 

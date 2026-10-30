@@ -91,8 +91,8 @@ const ViewLoadingSkeleton: React.FC = () => (
 );
 
 const AccessRestrictedView: React.FC<{ viewTitle: string; requiredRole?: string }> = ({ viewTitle, requiredRole = 'ADMIN' }) => {
-  const { currentUser, setActiveView } = useApp();
-  const permissions = getRolePermissions(currentUser.role);
+  const { currentUser, setActiveView, getUserPermissions } = useApp();
+  const permissions = getRolePermissions(currentUser.role, getUserPermissions(currentUser));
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center py-12 px-4">
@@ -102,13 +102,13 @@ const AccessRestrictedView: React.FC<{ viewTitle: string; requiredRole?: string 
         </div>
         <div className="space-y-2">
           <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full">
-            Access Restricted (RBAC)
+            Access Restricted (RBAC / IAM)
           </span>
           <h3 className="text-xl font-serif font-bold text-[#2C2416]">
             {viewTitle} Restricted
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Your current role (<strong className="text-gray-900">{currentUser.role}</strong>) does not have authorization to view this module. Analytics and security audit logs are strictly reserved for <strong>{requiredRole}</strong>.
+            Your current identity (<strong className="text-gray-900">{currentUser.name}</strong> • <span className="font-semibold">{currentUser.role}</span>) does not have IAM authorization to view this module based on active governance policies.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ const AccessRestrictedView: React.FC<{ viewTitle: string; requiredRole?: string 
 };
 
 const MainLayout: React.FC = () => {
-  const { activeView, currentUser } = useApp();
+  const { activeView, currentUser, canAccessView } = useApp();
 
   const isSuspended = currentUser.status === 'SUSPENDED';
 
@@ -145,7 +145,7 @@ const MainLayout: React.FC = () => {
     currentUser.role === 'CLIENT' && currentUser.onboardingStatus !== 'ONBOARDED';
 
   // Check if current role has permission to see active view
-  const isViewPermitted = hasViewAccess(currentUser.role, activeView);
+  const isViewPermitted = canAccessView(activeView);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-400/20">

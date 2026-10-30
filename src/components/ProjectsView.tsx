@@ -26,10 +26,17 @@ export const ProjectsView: React.FC = () => {
     setEditingProjectData,
     deleteProject,
     currentUser,
-    isProjectMember
+    isProjectMember,
+    hasPermission,
+    getUserPermissions
   } = useApp();
 
-  const rolePermissions = getRolePermissions(currentUser.role);
+  const userPermissions = getUserPermissions(currentUser);
+  const rolePermissions = getRolePermissions(currentUser.role, userPermissions);
+  const canCreateProject = hasPermission('MANAGE_PROJECTS');
+  const canEditProject = hasPermission('MANAGE_PROJECTS');
+  const canDeleteProject = currentUser.role === 'ADMIN' || hasPermission('ADMIN_FULL_ACCESS');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -87,7 +94,7 @@ export const ProjectsView: React.FC = () => {
           </p>
         </div>
 
-        {rolePermissions.canCreateProject && (
+        {canCreateProject && (
           <button
             onClick={() => {
               setEditingProjectData(null);
@@ -170,10 +177,10 @@ export const ProjectsView: React.FC = () => {
                     {getStatusBadge(project.status)}
                   </div>
 
-                  {/* Quick Actions (Edit/Delete strictly guarded by role permissions) */}
-                  {(rolePermissions.canEditProject || rolePermissions.canDeleteProject) && (
+                  {/* Quick Actions (Edit/Delete strictly guarded by IAM permissions) */}
+                  {(canEditProject || canDeleteProject) && (
                     <div className="absolute top-3 right-3 flex items-center gap-1">
-                      {rolePermissions.canEditProject && (
+                      {canEditProject && (
                         <button
                           onClick={e => {
                             e.stopPropagation();
@@ -186,7 +193,7 @@ export const ProjectsView: React.FC = () => {
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      {rolePermissions.canDeleteProject && (
+                      {canDeleteProject && (
                         <button
                           onClick={e => {
                             e.stopPropagation();

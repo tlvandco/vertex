@@ -39,7 +39,10 @@ export const Navbar: React.FC = () => {
     chatOpen,
     setIsCreateProjectOpen,
     setEditingProjectData,
-    addToast
+    addToast,
+    canAccessView,
+    getUserPermissions,
+    hasPermission
   } = useApp();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -49,14 +52,15 @@ export const Navbar: React.FC = () => {
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
   const [latency, setLatency] = useState(12);
 
-  const rolePermissions = getRolePermissions(currentUser.role);
+  const userPermissions = getUserPermissions(currentUser);
+  const rolePermissions = getRolePermissions(currentUser.role, userPermissions);
 
   // Auto-switch to authorized default view if current activeView is forbidden for this role
   useEffect(() => {
-    if (!hasViewAccess(currentUser.role, activeView)) {
+    if (!canAccessView(activeView)) {
       setActiveView(rolePermissions.defaultView);
     }
-  }, [currentUser.role, activeView, rolePermissions.defaultView, setActiveView]);
+  }, [currentUser.role, userPermissions, activeView, rolePermissions.defaultView, setActiveView, canAccessView]);
 
   useEffect(() => {
     const probe = async () => {
@@ -126,7 +130,7 @@ export const Navbar: React.FC = () => {
     { id: 'analytics', label: 'Observability & APM', icon: Activity }
   ];
 
-  const visibleNavItems = allNavItems.filter(item => hasViewAccess(currentUser.role, item.id));
+  const visibleNavItems = allNavItems.filter(item => canAccessView(item.id));
 
   return (
     <>
@@ -234,20 +238,22 @@ export const Navbar: React.FC = () => {
             {/* Right: Actions, Onboarding Trigger, Notifications, Profile */}
             <div className="flex items-center gap-2 shrink-0">
               {/* OTP Onboarding Quick Trigger */}
-              <button
-                onClick={() => {
-                  setOnboardingInitialType(currentUser.role === 'CLIENT' ? 'CLIENT' : 'STAFF');
-                  setIsOnboardingModalOpen(true);
-                }}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition-colors cursor-pointer shadow-2xs"
-                title="Onboard Client (Email/SMS OTP) or Staff (Email OTP)"
-              >
-                <UserPlus className="w-3.5 h-3.5 text-amber-700" />
-                <span>Onboard via OTP</span>
-              </button>
+              {(hasPermission('ONBOARD_CLIENT_ACCOUNTS') || hasPermission('MANAGE_IAM_STAFF')) && (
+                <button
+                  onClick={() => {
+                    setOnboardingInitialType(currentUser.role === 'CLIENT' ? 'CLIENT' : 'STAFF');
+                    setIsOnboardingModalOpen(true);
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition-colors cursor-pointer shadow-2xs"
+                  title="Onboard Client (Email/SMS OTP) or Staff (Email OTP)"
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Onboard via OTP</span>
+                </button>
+              )}
 
-              {/* Edge Latency Badge (Admin only) */}
-              {currentUser.role === 'ADMIN' && (
+              {/* Edge Latency Badge (Admin / Telemetry permission) */}
+              {(currentUser.role === 'ADMIN' || hasPermission('CLUSTER_TELEMETRY')) && (
                 <button
                   onClick={() => setIsClusterModalOpen(true)}
                   className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer"
